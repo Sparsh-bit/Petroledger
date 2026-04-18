@@ -9,8 +9,6 @@ services:
     envVars:
       - key: ENVIRONMENT
         value: prod
-      - key: PORT
-        value: 8000
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL

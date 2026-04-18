@@ -8,10 +8,10 @@ All values are read from environment variables or a .env file.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, computed_field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
         default=True,
         description="Force-enable Swagger/ReDoc even in production",
     )
-    CORS_ORIGINS: list[str] = Field(
+    CORS_ORIGINS: Annotated[list[str], NoDecode] = Field(
         default=[
             "http://localhost:3000",
             "http://localhost:5173",
@@ -71,13 +71,18 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: object) -> list[str]:
-        """Accept both JSON lists and comma-separated strings.
+        """Accept wildcard, JSON list, or comma-separated string.
 
-        Railway env vars are plain strings, so ``CORS_ORIGINS=https://a.com,https://b.com``
-        must be parsed here rather than relying on pydantic-settings' JSON coercion.
+        NoDecode prevents pydantic-settings from JSON-parsing env strings before
+        this validator runs, so values like ``*`` or ``https://a.com,https://b.com``
+        are accepted directly.
         """
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
+            s = v.strip()
+            if s.startswith("["):
+                import json
+                return json.loads(s)
+            return [origin.strip() for origin in s.split(",") if origin.strip()]
         return v  # type: ignore[return-value]
 
     # ── Environment ─────────────────────────────────────────────────────
