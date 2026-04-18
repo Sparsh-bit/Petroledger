@@ -33,3 +33,33 @@ export async function logoutRequest(): Promise<void> {
     /* ignore */
   }
 }
+
+export interface PasswordChangePayload {
+  old_password: string;
+  new_password: string;
+}
+
+export async function changePasswordRequest(
+  payload: PasswordChangePayload,
+): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>(
+    "/auth/password-change",
+    payload,
+  );
+  return data;
+}
+
+export interface MeResponse {
+  id: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  tenant_id: string | null;
+  last_login: string | null;
+  created_at: string;
+}
+
+export async function meRequest(): Promise<MeResponse> {
+  const { data } = await api.get<MeResponse>("/auth/me");
+  return data;
+}

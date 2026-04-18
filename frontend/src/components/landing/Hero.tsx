@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Play, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { DotPattern } from "@/components/lightswind/dot-pattern";
 import { fadeUp, wordReveal, driftBackground } from "@/lib/anime-helpers";
 import { cn } from "@/lib/utils";
@@ -87,8 +87,8 @@ export function Hero() {
             className="hcta inline-flex items-center gap-2 h-12 px-7 rounded-full border border-white/10 bg-white/[0.03] text-slate-200 font-medium hover:bg-white/[0.06] hover:border-white/20 transition-all duration-200"
             style={{ opacity: 0 }}
           >
-            <Play className="h-4 w-4 text-amber-400" />
-            Watch demo
+            Explore features
+            <ArrowRight className="h-4 w-4 text-amber-400" />
           </a>
         </div>
 

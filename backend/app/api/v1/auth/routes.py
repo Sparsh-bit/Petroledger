@@ -62,6 +62,11 @@ class PasswordResetConfirm(BaseModel):
     new_password: str
 
 
+class PasswordChangeRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
 # ── POST /register ───────────────────────────────────────────────────────────
 
 
@@ -299,3 +304,37 @@ async def me(
 ) -> UserResponse:
     """Return the currently authenticated user's profile."""
     return UserResponse.model_validate(current_user)
+
+
+# ── POST /password-change ───────────────────────────────────────────────────
+
+
+@router.post(
+    "/password-change",
+    response_model=MessageResponse,
+    summary="Change the password for the authenticated user",
+)
+async def password_change(
+    payload: PasswordChangeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> MessageResponse:
+    """Verify old password and rotate to new password."""
+    from fastapi import HTTPException, status as http_status
+
+    from app.core.security import hash_password, verify_password
+
+    if not verify_password(payload.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters.",
+        )
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.add(current_user)
+    await db.commit()
+    return MessageResponse(message="Password updated.")

@@ -7,6 +7,7 @@ from app.models.assignments import (
     NozzleAssignment,
 )
 from app.models.audit import AuditLog
+from app.models.contact_submission import ContactSubmission
 from app.models.fms import (
     CashEntry,
     FleetEntryMethod,
@@ -33,6 +34,7 @@ __all__ = [
     "AnomalyFlagType",
     "AnomalySeverity",
     "AuditLog",
+    "ContactSubmission",
     "NozzleAssignment",
     "CashEntry",
     "FleetEntryMethod",

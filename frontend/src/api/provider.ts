@@ -48,6 +48,24 @@ export interface SubscriptionsResponse {
   total_mrr_inr: number;
 }
 
+export interface ProviderUserItem {
+  id: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  tenant_id: string | null;
+  tenant_name: string | null;
+  last_login: string | null;
+  created_at: string;
+}
+
+export interface ProviderUsersResponse {
+  items: ProviderUserItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export const providerApi = {
   stats: () => api.get<ProviderStats>("/provider/stats").then((r) => r.data),
   subscriptions: () =>
@@ -64,6 +82,16 @@ export const providerApi = {
     api.post(`/provider/organizations/${id}/lock`).then((r) => r.data),
   unlock: (id: string) =>
     api.post(`/provider/organizations/${id}/unlock`).then((r) => r.data),
+  users: (params?: {
+    role?: string;
+    tenant_id?: string;
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }) =>
+    api
+      .get<ProviderUsersResponse>("/provider/users", { params })
+      .then((r) => r.data),
   updateSubscription: (
     id: string,
     body: {

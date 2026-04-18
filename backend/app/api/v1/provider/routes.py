@@ -78,6 +78,24 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class ProviderUserItem(BaseModel):
+    id: str
+    email: str
+    role: str
+    is_active: bool
+    tenant_id: str | None
+    tenant_name: str | None
+    last_login: datetime | None
+    created_at: datetime
+
+
+class ProviderUsersResponse(BaseModel):
+    items: list[ProviderUserItem]
+    total: int
+    page: int
+    page_size: int
+
+
 class SubscriptionGroup(BaseModel):
     status: str
     count: int
@@ -281,6 +299,60 @@ async def list_subscriptions(
 
     total_mrr = sum(g.mrr_inr for g in groups if g.status == "ACTIVE")
     return SubscriptionsResponse(groups=groups, total_mrr_inr=total_mrr)
+
+
+@router.get("/users", response_model=ProviderUsersResponse)
+async def list_users(
+    role: str | None = None,
+    tenant_id: str | None = None,
+    search: str | None = None,
+    page: int = 1,
+    page_size: int = 50,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> ProviderUsersResponse:
+    """List all users across all tenants with optional filters."""
+    page = max(1, page)
+    page_size = max(1, min(200, page_size))
+
+    stmt = select(User, Tenant.name).join(
+        Tenant, Tenant.id == User.tenant_id, isouter=True
+    )
+    if role:
+        stmt = stmt.where(User.role == role.lower())
+    if tenant_id:
+        try:
+            stmt = stmt.where(User.tenant_id == uuid.UUID(tenant_id))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid tenant_id.")
+    if search:
+        like = f"%{search.lower()}%"
+        stmt = stmt.where(func.lower(User.email).like(like))
+
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = (await db.execute(count_stmt)).scalar_one() or 0
+
+    stmt = stmt.order_by(User.created_at.desc()).offset(
+        (page - 1) * page_size
+    ).limit(page_size)
+    rows = (await db.execute(stmt)).all()
+
+    items = [
+        ProviderUserItem(
+            id=str(u.id),
+            email=u.email,
+            role=u.role.value if hasattr(u.role, "value") else str(u.role),
+            is_active=u.is_active,
+            tenant_id=str(u.tenant_id) if u.tenant_id else None,
+            tenant_name=tenant_name,
+            last_login=u.last_login,
+            created_at=u.created_at,
+        )
+        for (u, tenant_name) in rows
+    ]
+    return ProviderUsersResponse(
+        items=items, total=int(total), page=page, page_size=page_size
+    )
 
 
 @router.get("/stats", response_model=ProviderStats)

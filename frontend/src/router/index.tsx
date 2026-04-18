@@ -24,6 +24,12 @@ import ProviderLoginPage from "../pages/provider/ProviderLoginPage";
 import OrganizationsPage from "../pages/provider/OrganizationsPage";
 import OrganizationDetailPage from "../pages/provider/OrganizationDetailPage";
 import SubscriptionsPage from "../pages/provider/SubscriptionsPage";
+import ProviderSettingsPage from "../pages/provider/SettingsPage";
+import ProviderUsersPage from "../pages/provider/UsersPage";
+import AboutPage from "../pages/marketing/AboutPage";
+import ContactPage from "../pages/marketing/ContactPage";
+import PrivacyPage from "../pages/marketing/PrivacyPage";
+import TermsPage from "../pages/marketing/TermsPage";
 import NotFoundPage from "../pages/NotFoundPage";
 
 function ProtectedRoute({
@@ -52,6 +58,10 @@ export function AppRouter() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/provider" element={<ProviderLoginPage />} />
 
         <Route
@@ -110,14 +120,8 @@ export function AppRouter() {
             path="/provider/subscriptions"
             element={<SubscriptionsPage />}
           />
-          <Route
-            path="/provider/settings"
-            element={
-              <div className="text-ink-300">
-                Settings — coming in Phase 2.
-              </div>
-            }
-          />
+          <Route path="/provider/users" element={<ProviderUsersPage />} />
+          <Route path="/provider/settings" element={<ProviderSettingsPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

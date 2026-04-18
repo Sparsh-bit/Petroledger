@@ -15,6 +15,7 @@ from app.api.v1.provider.routes import router as provider_router
 from app.api.v1.meter_readings.routes import router as meter_readings_router
 from app.api.v1.auth.routes import router as auth_router
 from app.api.v1.cash_entries.routes import router as cash_entries_router
+from app.api.v1.contact.routes import router as contact_router
 from app.api.v1.data_ingestion.routes import router as data_ingestion_router
 from app.api.v1.fleet_transactions.routes import router as fleet_transactions_router
 from app.api.v1.fms_transactions.routes import router as fms_transactions_router
@@ -149,4 +150,9 @@ api_router.include_router(
     maintenance_router,
     prefix="/maintenance",
     tags=["Maintenance"],
+)
+api_router.include_router(
+    contact_router,
+    prefix="/contact",
+    tags=["Contact"],
 )
