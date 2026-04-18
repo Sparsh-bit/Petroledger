@@ -51,14 +51,15 @@ COPY . .
 # Create reports directory
 RUN mkdir -p /app/reports
 
-# Non-root user for security
-RUN useradd --no-create-home --shell /bin/false appuser \
-    && chown -R appuser:appuser /app
+# Non-root user for security (with home dir so gunicorn/tooling has a writable $HOME)
+RUN useradd --create-home --home-dir /home/appuser --shell /bin/false appuser \
+    && chown -R appuser:appuser /app /home/appuser
 USER appuser
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     REPORTS_DIR=/app/reports \
+    HOME=/home/appuser \
     PORT=8000
 
 EXPOSE 8000

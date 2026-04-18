@@ -25,7 +25,6 @@ from app.api.v1.pos_batch_settlements.routes import (
 )
 from app.api.v1.pumps.routes import router as pumps_router
 from app.api.v1.reconciliation.routes import router as reconciliation_router
-from app.api.v1.reports.routes import router as reports_router
 from app.api.v1.shifts.routes import router as shifts_router
 from app.api.v1.tenants.routes import router as tenants_router
 from app.api.v1.workers.routes import router as workers_router
@@ -106,11 +105,6 @@ api_router.include_router(
     anomaly_flags_router,
     prefix="/anomaly-flags",
     tags=["Anomaly Flags"],
-)
-api_router.include_router(
-    reports_router,
-    prefix="/reports",
-    tags=["Reports"],
 )
 api_router.include_router(
     meter_readings_router,
