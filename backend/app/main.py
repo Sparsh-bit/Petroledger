@@ -127,6 +127,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 #        except Exception as exc:
 #            logger.warning("Enum validation skipped: %s", exc)
 
+    # Run Alembic migrations on boot so prod DB schema is always current.
+    # Idempotent: no-op when already at head.
+    try:
+        import asyncio as _asyncio
+        from alembic import command
+        from alembic.config import Config as _AlembicConfig
+
+        def _run_migrations() -> None:
+            cfg = _AlembicConfig("alembic.ini")
+            command.upgrade(cfg, "head")
+
+        await _asyncio.to_thread(_run_migrations)
+        logger.info("Alembic migrations applied ✓")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Alembic migration failed: %s", exc, exc_info=True)
+
     # Idempotent superadmin seed — runs on every boot, no-op if user exists.
     if settings.SUPERADMIN_EMAIL and settings.SUPERADMIN_PASSWORD:
         try:
