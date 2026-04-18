@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(grep -r \"f.*SELECT\\\\|f''''.*SELECT\\\\|format.*SELECT\" /c/Users/agarw/OneDrive/Desktop/Petrol/backend/app --include=*.py)",
+      "Bash(find /c/Users/agarw/OneDrive/Desktop/Petrol/backend/tests -type f -name *.py)",
+      "Bash(python3 -m py_compile /c/Users/agarw/OneDrive/Desktop/Petrol/backend/app/main.py /c/Users/agarw/OneDrive/Desktop/Petrol/backend/app/services/auth.py /c/Users/agarw/OneDrive/Desktop/Petrol/backend/app/tasks/ingestion.py)",
+      "Bash(find /c/Users/agarw/OneDrive/Desktop/Petrol/backend/app -type f -name *.py)",
+      "Bash(find /c/Users/agarw/OneDrive/Desktop/Petrol/backend -path */migrations/versions -type d)",
+      "Bash(grep -l \"data_prep\\\\|data_preparation\\\\|prepare\" /c/Users/agarw/OneDrive/Desktop/Petrol/backend/app/services/reconciliation/*.py)",
+      "Bash(python3 -c \"from app.models.shift import ShiftStatus, ShiftSlot; print\\(list\\(ShiftStatus\\)\\); print\\(list\\(ShiftSlot\\)\\)\")",
+      "Bash(python3 -c \"import sys; sys.path.insert\\(0, '.'\\); from app.models.shift import ShiftStatus, ShiftSlot; print\\(list\\(ShiftStatus\\)\\); print\\(list\\(ShiftSlot\\)\\)\")",
+      "Bash(python3 -c \"from app.models.reconciliation import ReconciliationStatus, VarianceType; print\\(list\\(ReconciliationStatus\\)\\); print\\(list\\(VarianceType\\)\\)\")",
+      "Bash(python3 -c \"from app.models.assignments import AnomalyFlagType, AnomalySeverity; print\\(list\\(AnomalyFlagType\\)\\); print\\(list\\(AnomalySeverity\\)\\)\")",
+      "Bash(PGPASSWORD=fuelrecon123 psql -h localhost -p 5433 -U fuelrecon -d fuelrecon -c \"SELECT 'tenants' as tbl, count\\(*\\) FROM tenants UNION ALL SELECT 'users', count\\(*\\) FROM users UNION ALL SELECT 'organizations', count\\(*\\) FROM organizations UNION ALL SELECT 'pumps', count\\(*\\) FROM pumps UNION ALL SELECT 'shifts', count\\(*\\) FROM shifts;\")",
+      "Bash(alembic upgrade *)",
+      "Bash(ping -c 2 db.pvaitlqfdvzgjuoovqlo.supabase.co)",
+      "Bash(nslookup db.pvaitlqfdvzgjuoovqlo.supabase.co)",
+      "Bash(nslookup aws-1-ap-northeast-1.pooler.supabase.com)",
+      "Bash(curl -v --max-time 5 \"postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432\")",
+      "Bash(timeout 5 bash -c \"echo > /dev/tcp/57.182.231.186/6543\")",
+      "Bash(timeout 5 bash -c \"echo > /dev/tcp/57.182.231.186/5432\")",
+      "Bash(git fetch *)",
+      "Bash(timeout 10 bash -c 'echo >/dev/tcp/aws-1-ap-northeast-1.pooler.supabase.com/6543')",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

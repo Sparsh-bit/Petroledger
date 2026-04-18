@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: petroledger-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: prod
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SUPERADMIN_EMAIL
+        sync: false
+      - key: SUPERADMIN_PASSWORD
+        sync: false
+      # CORS_ORIGINS: set to "*" only for initial bring-up. In production,
+      # replace with a comma-separated list of your Vercel URLs, e.g.
+      #   https://petroledger.vercel.app,https://petroledger-<team>.vercel.app
+      - key: CORS_ORIGINS
+        value: "*"
+      # ── Email / SMTP (all optional — blank values disable outbound email) ──
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_USE_TLS
+        sync: false

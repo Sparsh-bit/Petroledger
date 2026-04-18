@@ -1,0 +1,91 @@
+# Deployment scaffold — DISABLED by default.
+#
+# Requires the following secrets to be set on the repo before this will run:
+#   AWS_ACCOUNT_ID           — 12-digit AWS account id
+#   AWS_REGION               — e.g. ap-south-1
+#   AWS_ROLE_TO_ASSUME       — IAM role ARN for OIDC auth
+#   ECR_REPOSITORY           — e.g. petroledger-prod-backend
+#   ECS_CLUSTER              — e.g. petroledger-prod-cluster
+#   ECS_SERVICE              — e.g. petroledger-prod-backend
+#   S3_FRONTEND_BUCKET       — e.g. petroledger-prod-frontend
+#   CLOUDFRONT_DISTRIBUTION  — e.g. E123ABCDEFG
+#
+# Remove the `if: false` guard below after configuring secrets to enable.
+
+name: Deploy (AWS)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backend:
+    if: false # enable after configuring secrets
+    name: Build & push backend to ECR, roll ECS service
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build + push image
+        working-directory: backend
+        run: |
+          IMAGE=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Force new deployment
+        run: |
+          aws ecs update-service \
+            --cluster "${{ secrets.ECS_CLUSTER }}" \
+            --service "${{ secrets.ECS_SERVICE }}" \
+            --force-new-deployment
+
+  frontend:
+    if: false # enable after configuring secrets
+    name: Build SPA, upload to S3, invalidate CloudFront
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install + build
+        working-directory: frontend
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync frontend/dist/ s3://${{ secrets.S3_FRONTEND_BUCKET }}/ --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION }} \
+            --paths '/*'
