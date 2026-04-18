@@ -11,11 +11,20 @@
   #root {
     height: 100%;
   }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
   body {
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    @apply font-sans bg-slate-950 text-slate-100 antialiased leading-relaxed;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
   }
   *:focus-visible {
-    outline: 2px solid theme("colors.brand.400");
+    outline: 2px solid theme("colors.amber.400");
     outline-offset: 2px;
   }
 }
@@ -23,26 +32,15 @@
 @layer utilities {
   .hero-radial {
     background:
-      radial-gradient(
-        60% 60% at 20% 10%,
-        rgba(16, 185, 129, 0.25) 0%,
-        transparent 60%
-      ),
-      radial-gradient(
-        50% 50% at 90% 20%,
-        rgba(59, 130, 246, 0.18) 0%,
-        transparent 60%
-      ),
-      radial-gradient(
-        40% 40% at 60% 90%,
-        rgba(244, 114, 182, 0.12) 0%,
-        transparent 60%
-      );
+      radial-gradient(60% 60% at 50% 30%, rgba(251, 191, 36, 0.18) 0%, transparent 60%),
+      radial-gradient(50% 50% at 50% 70%, rgba(16, 185, 129, 0.14) 0%, transparent 60%);
   }
   .grid-bg {
     background-image:
-      linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
 }

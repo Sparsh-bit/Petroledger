@@ -1,19 +1,18 @@
+import lightswindPlugin from "lightswind/plugin";
+
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{ts,tsx}",
+    "./node_modules/lightswind/**/*.{js,ts,jsx,tsx}",
+  ],
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
-          "-apple-system",
-          "Segoe UI",
-          "Roboto",
-          "sans-serif",
-        ],
-        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ['"Inter Tight"', "Inter", "sans-serif"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
       colors: {
         brand: {
@@ -44,8 +43,18 @@ export default {
       },
       boxShadow: {
         glow: "0 0 40px -10px rgba(16,185,129,0.5)",
+        "glow-amber": "0 0 60px -10px rgba(251, 191, 36, 0.45)",
+      },
+      keyframes: {
+        dotPatternMotion: {
+          "0%, 100%": { transform: "translate(0, 0)" },
+          "50%": { transform: "translate(8px, -6px)" },
+        },
+      },
+      animation: {
+        dotPatternMotion: "dotPatternMotion 18s ease-in-out infinite",
       },
     },
   },
-  plugins: [],
+  plugins: [lightswindPlugin],
 };
