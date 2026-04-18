@@ -78,8 +78,22 @@ async def seed() -> None:
         ).scalar_one_or_none()
 
         if user is not None:
-            print(f"[seed] User '{email}' already exists — skipping.")
-            await db.commit()
+            changed = False
+            if user.role != UserRole.SUPERADMIN:
+                print(f"[seed] Upgrading '{email}' role {user.role} → SUPERADMIN")
+                user.role = UserRole.SUPERADMIN
+                changed = True
+            if user.tenant_id != tenant.id:
+                user.tenant_id = tenant.id
+                changed = True
+            if not user.is_active:
+                user.is_active = True
+                changed = True
+            if changed:
+                await db.commit()
+                print(f"[seed] Updated existing user '{email}'.")
+            else:
+                print(f"[seed] User '{email}' already correct — no change.")
             return
 
         user = User(
