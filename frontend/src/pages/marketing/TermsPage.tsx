@@ -94,9 +94,9 @@ export default function TermsPage() {
             Questions about these terms can be sent to{" "}
             <a
               className="text-amber-400 hover:text-amber-300"
-              href="mailto:legal@petroledger.in"
+              href="mailto:official.concilio@gmail.com"
             >
-              legal@petroledger.in
+              official.concilio@gmail.com
             </a>
             .
           </p>

@@ -27,10 +27,10 @@ export function Nav() {
             Sign in
           </Link>
           <Link
-            to="/login"
+            to="/request-access"
             className="inline-flex items-center h-10 px-5 rounded-full text-sm font-medium bg-amber-400 text-slate-950 hover:bg-amber-300 transition-all duration-200 shadow-glow-amber"
           >
-            Get started
+            Request access
           </Link>
         </div>
       </div>

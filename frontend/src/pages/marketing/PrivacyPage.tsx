@@ -9,6 +9,25 @@ export default function PrivacyPage() {
       <p className="mt-3 text-sm text-slate-500">
         Last updated: 18 April 2026
       </p>
+      <p className="mt-2 text-sm text-slate-400">
+        Data controller: Concilio Solutions —{" "}
+        <a className="text-amber-400 hover:text-amber-300" href="mailto:official.concilio@gmail.com">
+          official.concilio@gmail.com
+        </a>{" "}
+        ·{" "}
+        <a className="text-amber-400 hover:text-amber-300" href="tel:+918840268280">
+          +91 88402 68280
+        </a>{" "}
+        ·{" "}
+        <a
+          className="text-amber-400 hover:text-amber-300"
+          href="https://concilio.solutions"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          concilio.solutions
+        </a>
+      </p>
 
       <div className="mt-10 space-y-8 text-slate-300 leading-relaxed">
         <section>
@@ -72,9 +91,9 @@ export default function PrivacyPage() {
             information at any time by writing to{" "}
             <a
               className="text-amber-400 hover:text-amber-300"
-              href="mailto:privacy@petroledger.in"
+              href="mailto:official.concilio@gmail.com"
             >
-              privacy@petroledger.in
+              official.concilio@gmail.com
             </a>
             .
           </p>

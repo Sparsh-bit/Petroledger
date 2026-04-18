@@ -75,11 +75,11 @@ export function Hero() {
 
         <div ref={ctasRef} className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            to="/login"
+            to="/request-access"
             className="hcta group inline-flex items-center gap-2 h-12 px-7 rounded-full bg-amber-400 text-slate-950 font-medium hover:bg-amber-300 transition-all duration-200 shadow-glow-amber"
             style={{ opacity: 0 }}
           >
-            Start free trial
+            Request access
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a

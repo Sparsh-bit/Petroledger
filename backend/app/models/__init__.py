@@ -6,6 +6,7 @@ from app.models.assignments import (
     AnomalySeverity,
     NozzleAssignment,
 )
+from app.models.access_request import AccessRequest, AccessRequestStatus
 from app.models.audit import AuditLog
 from app.models.contact_submission import ContactSubmission
 from app.models.fms import (
@@ -30,6 +31,8 @@ from app.models.user import User, UserRole
 from app.models.worker import Worker
 
 __all__ = [
+    "AccessRequest",
+    "AccessRequestStatus",
     "AnomalyFlag",
     "AnomalyFlagType",
     "AnomalySeverity",

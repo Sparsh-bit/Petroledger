@@ -89,14 +89,14 @@ export function Pricing() {
                 ))}
               </ul>
               <Link
-                to="/login"
+                to="/request-access"
                 className={`mt-8 inline-flex w-full items-center justify-center h-12 rounded-full font-medium transition-all duration-200 ${
                   p.popular
                     ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
                     : "border border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
                 }`}
               >
-                {p.popular ? "Start free trial" : "Choose plan"}
+                Request access
               </Link>
             </div>
           ))}

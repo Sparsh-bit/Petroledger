@@ -38,6 +38,35 @@ export default function AboutPage() {
             out across 2026.
           </p>
         </section>
+        <section>
+          <h2 className="text-2xl font-semibold text-white">Get in touch</h2>
+          <p>
+            PetroLedger is built by Concilio Solutions. Reach us at{" "}
+            <a
+              className="text-amber-400 hover:text-amber-300"
+              href="mailto:official.concilio@gmail.com"
+            >
+              official.concilio@gmail.com
+            </a>
+            ,{" "}
+            <a
+              className="text-amber-400 hover:text-amber-300"
+              href="tel:+918840268280"
+            >
+              +91 88402 68280
+            </a>
+            , or visit{" "}
+            <a
+              className="text-amber-400 hover:text-amber-300"
+              href="https://concilio.solutions"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              concilio.solutions
+            </a>
+            .
+          </p>
+        </section>
       </div>
     </MarketingLayout>
   );

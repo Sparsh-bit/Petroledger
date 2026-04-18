@@ -26,8 +26,11 @@ import OrganizationDetailPage from "../pages/provider/OrganizationDetailPage";
 import SubscriptionsPage from "../pages/provider/SubscriptionsPage";
 import ProviderSettingsPage from "../pages/provider/SettingsPage";
 import ProviderUsersPage from "../pages/provider/UsersPage";
+import AccessRequestsPage from "../pages/provider/AccessRequestsPage";
+import AccessRequestDetailPage from "../pages/provider/AccessRequestDetailPage";
 import AboutPage from "../pages/marketing/AboutPage";
 import ContactPage from "../pages/marketing/ContactPage";
+import RequestAccessPage from "../pages/marketing/RequestAccessPage";
 import PrivacyPage from "../pages/marketing/PrivacyPage";
 import TermsPage from "../pages/marketing/TermsPage";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -60,6 +63,7 @@ export function AppRouter() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/request-access" element={<RequestAccessPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/provider" element={<ProviderLoginPage />} />
@@ -121,6 +125,14 @@ export function AppRouter() {
             element={<SubscriptionsPage />}
           />
           <Route path="/provider/users" element={<ProviderUsersPage />} />
+          <Route
+            path="/provider/access-requests"
+            element={<AccessRequestsPage />}
+          />
+          <Route
+            path="/provider/access-requests/:id"
+            element={<AccessRequestDetailPage />}
+          />
           <Route path="/provider/settings" element={<ProviderSettingsPage />} />
         </Route>
 

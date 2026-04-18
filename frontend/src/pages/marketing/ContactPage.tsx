@@ -49,6 +49,32 @@ export default function ContactPage() {
         Tell us about your pump or chain. We reply within one business day.
       </p>
 
+      <div className="mt-8 grid gap-3 sm:grid-cols-3 max-w-3xl">
+        <a
+          href="mailto:official.concilio@gmail.com"
+          className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm hover:border-amber-400/40 transition"
+        >
+          <div className="text-xs uppercase tracking-wider text-slate-500">Email</div>
+          <div className="mt-1 text-slate-100 font-medium">official.concilio@gmail.com</div>
+        </a>
+        <a
+          href="tel:+918840268280"
+          className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm hover:border-amber-400/40 transition"
+        >
+          <div className="text-xs uppercase tracking-wider text-slate-500">Phone</div>
+          <div className="mt-1 text-slate-100 font-medium">+91 88402 68280</div>
+        </a>
+        <a
+          href="https://concilio.solutions"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm hover:border-amber-400/40 transition"
+        >
+          <div className="text-xs uppercase tracking-wider text-slate-500">Website</div>
+          <div className="mt-1 text-slate-100 font-medium">concilio.solutions</div>
+        </a>
+      </div>
+
       {done ? (
         <div className="mt-10 rounded-2xl border border-emerald-400/30 bg-emerald-400/5 p-6 text-emerald-200">
           Thanks — your message is in. We'll be in touch shortly.

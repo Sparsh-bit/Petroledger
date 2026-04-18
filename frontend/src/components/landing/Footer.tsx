@@ -14,6 +14,7 @@ const COLS: { title: string; links: FooterLink[] }[] = [
       { label: "Features", to: "/#features" },
       { label: "Pricing", to: "/#pricing" },
       { label: "How it works", to: "/#how" },
+      { label: "Request access", to: "/request-access" },
       { label: "Sign in", to: "/login" },
     ],
   },
@@ -94,12 +95,26 @@ export function Footer() {
           <p className="text-xs text-slate-500 font-mono">
             © {new Date().getFullYear()} PetroLedger. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
             <a
-              href="mailto:hello@petroledger.in"
+              href="mailto:official.concilio@gmail.com"
               className="hover:text-white transition-colors"
             >
-              hello@petroledger.in
+              official.concilio@gmail.com
+            </a>
+            <a
+              href="tel:+918840268280"
+              className="hover:text-white transition-colors"
+            >
+              +91 88402 68280
+            </a>
+            <a
+              href="https://concilio.solutions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+            >
+              concilio.solutions
             </a>
           </div>
         </div>
