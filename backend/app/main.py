@@ -111,21 +111,34 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         settings.ENVIRONMENT,
     )
 
-    # Verify database connectivity (non-fatal — server starts even if DB is temporarily unreachable)
-#    try:
-#        async with engine.connect() as conn:
-#            await conn.execute(text("SELECT 1"))
-#        logger.info("Database connection verified")
-#    except Exception as exc:
-#        logger.warning("Database connection check failed at startup: %s", exc)
+    # ── Verify database connectivity ──────────────────────────────────
+    # Non-fatal in dev (log + continue); fatal in prod (log + re-raise so
+    # the platform orchestrator restarts with a visible error).
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        logger.info("Database connection verified")
+    except Exception as exc:  # noqa: BLE001
+        if settings.is_production:
+            logger.error(
+                "Database connection check failed at startup (prod): %s",
+                exc,
+                exc_info=True,
+            )
+            raise
+        logger.warning(
+            "Database connection check failed at startup (dev — continuing): %s",
+            exc,
+        )
 
-    # Validate Python enums match PostgreSQL enums (PostgreSQL only)
+    # ── Validate Python enums match PostgreSQL enums ──────────────────
+    # PostgreSQL-only. Skipped gracefully on SQLite/other backends and on
+    # transient connection failures. Logs warnings on mismatch; never raises.
     if "postgresql" in settings.DATABASE_URL:
-        pass
-#        try:
-#            await _validate_db_enums()
-#        except Exception as exc:
-#            logger.warning("Enum validation skipped: %s", exc)
+        try:
+            await _validate_db_enums()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Enum validation skipped: %s", exc)
 
     # Run Alembic migrations on boot so prod DB schema is always current.
     # Idempotent: no-op when already at head.

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
   html,
   body,
@@ -17,14 +17,14 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply font-sans bg-slate-950 text-slate-100 antialiased leading-relaxed;
+    @apply font-sans bg-slate-50 text-slate-900 antialiased leading-relaxed;
     font-feature-settings: "ss01", "cv11";
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
   *:focus-visible {
-    outline: 2px solid theme("colors.amber.400");
+    outline: 2px solid theme("colors.indigo.500");
     outline-offset: 2px;
   }
 }

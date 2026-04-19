@@ -13,10 +13,10 @@ export function Nav() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 font-display text-sm font-medium text-slate-300">
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-          <a href="#how" className="hover:text-white transition-colors">Docs</a>
-          <a href="#cta" className="hover:text-white transition-colors">Contact</a>
+          <Link to="/features" className="hover:text-white transition-colors">Features</Link>
+          <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+          <Link to="/how-it-works" className="hover:text-white transition-colors">How it works</Link>
+          <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -27,10 +27,10 @@ export function Nav() {
             Sign in
           </Link>
           <Link
-            to="/login"
+            to="/request-access"
             className="inline-flex items-center h-10 px-5 rounded-full text-sm font-medium bg-amber-400 text-slate-950 hover:bg-amber-300 transition-all duration-200 shadow-glow-amber"
           >
-            Get started
+            Request access
           </Link>
         </div>
       </div>

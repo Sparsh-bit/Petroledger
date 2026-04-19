@@ -57,11 +57,11 @@ async def list_audit_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER)),
+    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
 ) -> PagedResponse[AuditLogResponse]:
     """Return audit-log rows for the current tenant, newest-first.
 
-    Hard-scoped to `current_user.tenant_id` — owners cannot escape their tenant.
+    Hard-scoped to `current_user.tenant_id` — owners/admins cannot escape their tenant.
     """
     stmt = (
         select(AuditLog)

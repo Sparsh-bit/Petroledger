@@ -13,7 +13,7 @@ export function Spinner({
     <div
       role="status"
       aria-live="polite"
-      className={`inline-flex items-center gap-2 text-ink-400 ${className ?? ""}`}
+      className={`inline-flex items-center gap-2 text-slate-500 ${className ?? ""}`}
     >
       <Loader2 className="animate-spin" style={{ width: size, height: size }} />
       {label && <span className="text-sm">{label}</span>}

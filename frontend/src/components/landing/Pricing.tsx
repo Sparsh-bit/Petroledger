@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { BorderBeam } from "@/components/lightswind/border-beam";
 
 const PLANS = [
@@ -89,17 +89,27 @@ export function Pricing() {
                 ))}
               </ul>
               <Link
-                to="/login"
+                to="/request-access"
                 className={`mt-8 inline-flex w-full items-center justify-center h-12 rounded-full font-medium transition-all duration-200 ${
                   p.popular
                     ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
                     : "border border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
                 }`}
               >
-                {p.popular ? "Start free trial" : "Choose plan"}
+                Request access
               </Link>
             </div>
           ))}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <Link
+            to="/pricing"
+            className="inline-flex items-center gap-2 text-sm font-medium text-amber-300 hover:text-amber-200 transition-colors"
+          >
+            See full pricing
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>

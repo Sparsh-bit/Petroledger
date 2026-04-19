@@ -1,8 +1,18 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Activity, Banknote, ClipboardList, Play, Plus } from "lucide-react";
+import {
+  Activity,
+  Banknote,
+  ClipboardList,
+  Play,
+  Plus,
+  RefreshCw,
+} from "lucide-react";
 import toast from "react-hot-toast";
-import { Button, Card, Badge, Input } from "../../components/ui";
+import { Button, Input } from "../../components/ui";
 import { Modal } from "../../components/ui/Modal";
+import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
+import { shiftsApi } from "../../api/shifts";
+import { adminApi } from "../../api/admin";
 import { api } from "../../api/client";
 
 interface Shift {
@@ -33,31 +43,29 @@ interface Pump {
 
 interface CashEntry {
   id: string;
-  amount?: string | number;
   physical_cash?: string | number;
-  entry_type?: string;
+  amount?: string | number;
   created_at: string;
 }
 
-interface Paged<T> {
-  items: T[];
-  total: number;
-}
-
-async function safeGet<T>(path: string, fallback: T): Promise<T> {
-  try {
-    const res = await api.get<T>(path);
-    return res.data;
-  } catch {
-    return fallback;
-  }
-}
-
 function errMsg(err: unknown, fallback: string): string {
+  const e = err as {
+    response?: { data?: { message?: string; detail?: string } };
+    message?: string;
+  };
   return (
-    (err as { response?: { data?: { message?: string } } })?.response?.data
-      ?.message || fallback
+    e?.response?.data?.detail ||
+    e?.response?.data?.message ||
+    e?.message ||
+    fallback
   );
+}
+
+function statusTone(status: string): string {
+  const s = status.toUpperCase();
+  if (s === "ACTIVE") return "bg-blue-100 text-blue-700";
+  if (s === "COMPLETED" || s === "RECONCILED") return "bg-slate-100 text-slate-700";
+  return "bg-slate-100 text-slate-500";
 }
 
 export default function ManagerDashboardPage() {
@@ -66,54 +74,54 @@ export default function ManagerDashboardPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [pumps, setPumps] = useState<Pump[]>([]);
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [startOpen, setStartOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
   const [readingOpen, setReadingOpen] = useState(false);
 
   async function refresh() {
-    const s = await safeGet<Paged<Shift>>(
-      "/shifts/?page=1&page_size=10",
-      { items: [], total: 0 },
-    );
-    setShifts(s.items);
-    const c = await safeGet<Paged<CashEntry> | CashEntry[]>(
-      "/cash-entries/?page=1&page_size=10",
-      { items: [], total: 0 },
-    );
-    const list = Array.isArray(c) ? c : (c as Paged<CashEntry>).items ?? [];
-    setCash(list.slice(0, 10));
+    try {
+      const [s, c] = await Promise.all([
+        shiftsApi.list({ page: 1, page_size: 10 }),
+        shiftsApi.getCashEntries({ page: 1 }),
+      ]);
+      setShifts(s.items);
+      const list = Array.isArray(c) ? c : c.items ?? [];
+      setCash(list.slice(0, 10));
+    } catch (err) {
+      toast.error(errMsg(err, "Failed to load dashboard."));
+    }
   }
 
   useEffect(() => {
-    void refresh();
     void (async () => {
-      const w = await safeGet<Paged<Worker> | Worker[]>(
-        "/workers/?page=1&page_size=100",
-        [],
-      );
-      setWorkers(Array.isArray(w) ? w : w.items ?? []);
-      const p = await safeGet<Paged<Pump> | Pump[]>(
-        "/pumps/?page=1&page_size=100",
-        [],
-      );
-      setPumps(Array.isArray(p) ? p : p.items ?? []);
+      setLoading(true);
+      try {
+        await refresh();
+        const [w, p] = await Promise.all([
+          adminApi.getWorkers({ page: 1, page_size: 100 }).catch(() => []),
+          adminApi.getPumps({ page: 1, page_size: 100 }).catch(() => []),
+        ]);
+        setWorkers(Array.isArray(w) ? (w as Worker[]) : ((w as { items: Worker[] }).items ?? []));
+        setPumps(Array.isArray(p) ? (p as Pump[]) : ((p as { items: Pump[] }).items ?? []));
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
-  // When a pump is picked inside the Start Shift modal we may want its nozzles;
-  // they live under the pump record (nozzles relationship). Load them lazily.
   async function loadNozzlesForPump(pumpId: string) {
-    const res = await safeGet<Pump & { nozzles?: Nozzle[] }>(
-      `/pumps/${pumpId}`,
-      { id: pumpId, name: "", nozzles: [] } as unknown as Pump & {
-        nozzles?: Nozzle[];
-      },
-    );
-    setNozzles(res.nozzles ?? []);
+    try {
+      const res = await adminApi.getPump(pumpId);
+      setNozzles(res.nozzles ?? []);
+    } catch {
+      setNozzles([]);
+    }
   }
 
-  const activeShifts = shifts.filter((s) => s.status === "ACTIVE").length;
+  const activeShifts = shifts.filter((s) => s.status === "ACTIVE");
+  const pendingRecon = shifts.filter((s) => s.status === "COMPLETED").length;
   const cashTotal = cash.reduce(
     (sum, c) => sum + Number(c.physical_cash ?? c.amount ?? 0),
     0,
@@ -122,49 +130,71 @@ export default function ManagerDashboardPage() {
   const kpis = [
     {
       label: "Active shifts",
-      value: activeShifts,
+      value: activeShifts.length,
       icon: Activity,
-      tone: "text-sky-300",
+      tone: "text-blue-600 bg-blue-50",
+    },
+    {
+      label: "Pending recon",
+      value: pendingRecon,
+      icon: RefreshCw,
+      tone: "text-indigo-600 bg-indigo-50",
     },
     {
       label: "Cash entries",
       value: cash.length,
       icon: ClipboardList,
-      tone: "text-brand-300",
+      tone: "text-emerald-600 bg-emerald-50",
     },
     {
-      label: "Cash total (₹)",
-      value: cashTotal.toLocaleString("en-IN"),
+      label: "Cash total",
+      value: `₹${cashTotal.toLocaleString("en-IN")}`,
       icon: Banknote,
-      tone: "text-amber-300",
+      tone: "text-amber-600 bg-amber-50",
     },
-  ] as const;
+  ];
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Manager Dashboard</h1>
-        <p className="mt-1 text-ink-400 text-sm">
-          Approve shifts, review variance, manage staff.
+        <h1 className="text-2xl font-bold text-slate-900">Manager Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Approve shifts, review variance, and run reconciliation.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {kpis.map((c) => (
-          <Card key={c.label} className="flex items-start justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-wider text-ink-500">
-                {c.label}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((k) => {
+          const Icon = k.icon;
+          return (
+            <div
+              key={k.label}
+              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-slate-500">
+                    {k.label}
+                  </div>
+                  <div className="mt-2 text-2xl font-bold text-slate-900">
+                    {loading ? <Skeleton className="h-7 w-20" /> : k.value}
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${k.tone}`}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
               </div>
-              <div className="mt-2 text-3xl font-bold">{c.value}</div>
             </div>
-            <c.icon className={`h-6 w-6 ${c.tone}`} />
-          </Card>
-        ))}
+          );
+        })}
       </div>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Quick actions</h2>
+      <section>
+        <h2 className="text-base font-semibold text-slate-900 mb-3">
+          Quick actions
+        </h2>
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => setStartOpen(true)}>
             <Play className="h-4 w-4" /> Start shift
@@ -176,53 +206,57 @@ export default function ManagerDashboardPage() {
             <Banknote className="h-4 w-4" /> Cash entry
           </Button>
         </div>
-      </div>
+      </section>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Recent shifts</h2>
-        <Card className="p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-ink-900/80 text-xs uppercase text-ink-400">
-              <tr>
-                <th className="text-left px-5 py-3">Shift</th>
-                <th className="text-left px-5 py-3">Worker</th>
-                <th className="text-left px-5 py-3">Started</th>
-                <th className="text-left px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shifts.length === 0 && (
+      <section>
+        <h2 className="text-base font-semibold text-slate-900 mb-3">
+          Recent shifts
+        </h2>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          {loading ? (
+            <div className="p-4">
+              <SkeletonList rows={5} />
+            </div>
+          ) : shifts.length === 0 ? (
+            <div className="p-8 text-center text-sm text-slate-500">
+              No shifts yet — use "Start shift" above to begin.
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <td
-                    colSpan={4}
-                    className="px-5 py-6 text-center text-ink-500"
-                  >
-                    No data yet.
-                  </td>
+                  <th className="text-left px-5 py-3">Shift</th>
+                  <th className="text-left px-5 py-3">Worker</th>
+                  <th className="text-left px-5 py-3">Started</th>
+                  <th className="text-left px-5 py-3">Status</th>
                 </tr>
-              )}
-              {shifts.map((s) => (
-                <tr key={s.id} className="border-t border-ink-800">
-                  <td className="px-5 py-3 font-mono text-xs">
-                    {s.id.slice(0, 8)}
-                  </td>
-                  <td className="px-5 py-3 font-mono text-xs text-ink-400">
-                    {s.worker_id.slice(0, 8)}
-                  </td>
-                  <td className="px-5 py-3 text-ink-300">
-                    {new Date(s.start_time).toLocaleString()}
-                  </td>
-                  <td className="px-5 py-3">
-                    <Badge tone={s.status === "ACTIVE" ? "green" : "slate"}>
-                      {s.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {shifts.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-3 font-mono text-xs text-slate-700">
+                      {s.id.slice(0, 8)}
+                    </td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-500">
+                      {s.worker_id.slice(0, 8)}
+                    </td>
+                    <td className="px-5 py-3 text-slate-700">
+                      {new Date(s.start_time).toLocaleString()}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusTone(s.status)}`}
+                      >
+                        {s.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
 
       <StartShiftModal
         open={startOpen}
@@ -237,7 +271,7 @@ export default function ManagerDashboardPage() {
       <CashEntryModal
         open={cashOpen}
         onClose={() => setCashOpen(false)}
-        shifts={shifts.filter((s) => s.status === "ACTIVE")}
+        shifts={activeShifts}
         onCreated={() => {
           setCashOpen(false);
           void refresh();
@@ -246,19 +280,16 @@ export default function ManagerDashboardPage() {
       <SubmitReadingModal
         open={readingOpen}
         onClose={() => setReadingOpen(false)}
-        shifts={shifts.filter((s) => s.status === "ACTIVE")}
+        shifts={activeShifts}
         nozzles={nozzles}
         onLoadNozzles={loadNozzlesForPump}
-        pumps={pumps}
-        onSubmitted={() => {
-          setReadingOpen(false);
-        }}
+        onSubmitted={() => setReadingOpen(false)}
       />
     </div>
   );
 }
 
-// ── Start Shift ───────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------ */
 
 function StartShiftModal({
   open,
@@ -281,14 +312,14 @@ function StartShiftModal({
     e.preventDefault();
     setBusy(true);
     try {
-      await api.post("/shifts/", {
+      await shiftsApi.startShift({
         pump_id: pumpId,
         worker_id: workerId,
         start_time: new Date().toISOString(),
       });
       toast.success("Shift started.");
       onCreated();
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(errMsg(err, "Failed to start shift."));
     } finally {
       setBusy(false);
@@ -305,7 +336,10 @@ function StartShiftModal({
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={(e) => void onSubmit(e as unknown as FormEvent)} disabled={busy || !pumpId || !workerId}>
+          <Button
+            onClick={(e) => void onSubmit(e as unknown as FormEvent)}
+            disabled={busy || !pumpId || !workerId}
+          >
             {busy ? "Starting…" : "Start"}
           </Button>
         </>
@@ -319,7 +353,7 @@ function StartShiftModal({
           <select
             value={pumpId}
             onChange={(e) => setPumpId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm"
+            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
           >
             <option value="">Select pump…</option>
             {pumps.map((p) => (
@@ -336,7 +370,7 @@ function StartShiftModal({
           <select
             value={workerId}
             onChange={(e) => setWorkerId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm"
+            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
           >
             <option value="">Select worker…</option>
             {workers.map((w) => (
@@ -351,7 +385,7 @@ function StartShiftModal({
   );
 }
 
-// ── Cash Entry ────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------ */
 
 function CashEntryModal({
   open,
@@ -372,13 +406,13 @@ function CashEntryModal({
     e.preventDefault();
     setBusy(true);
     try {
-      await api.post("/cash-entries/", {
+      await shiftsApi.saveCashEntry({
         shift_id: shiftId,
         physical_cash: Number(amount),
       });
       toast.success("Cash entry recorded.");
       onCreated();
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(errMsg(err, "Failed to record cash."));
     } finally {
       setBusy(false);
@@ -412,7 +446,7 @@ function CashEntryModal({
           <select
             value={shiftId}
             onChange={(e) => setShiftId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm"
+            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
           >
             <option value="">Select shift…</option>
             {shifts.map((s) => (
@@ -435,14 +469,13 @@ function CashEntryModal({
   );
 }
 
-// ── Submit reading ────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------ */
 
 function SubmitReadingModal({
   open,
   onClose,
   shifts,
   nozzles,
-  pumps,
   onLoadNozzles,
   onSubmitted,
 }: {
@@ -450,7 +483,6 @@ function SubmitReadingModal({
   onClose: () => void;
   shifts: Shift[];
   nozzles: Nozzle[];
-  pumps: Pump[];
   onLoadNozzles: (pumpId: string) => Promise<void>;
   onSubmitted: () => void;
 }) {
@@ -476,15 +508,12 @@ function SubmitReadingModal({
       });
       toast.success("Reading submitted.");
       onSubmitted();
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(errMsg(err, "Failed to submit reading."));
     } finally {
       setBusy(false);
     }
   }
-
-  // placate unused var warning
-  void pumps;
 
   return (
     <Modal
@@ -513,7 +542,7 @@ function SubmitReadingModal({
           <select
             value={shiftId}
             onChange={(e) => setShiftId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm"
+            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
           >
             <option value="">Select shift…</option>
             {shifts.map((s) => (
@@ -530,7 +559,7 @@ function SubmitReadingModal({
           <select
             value={nozzleId}
             onChange={(e) => setNozzleId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm"
+            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
           >
             <option value="">Select nozzle…</option>
             {nozzles.map((n) => (

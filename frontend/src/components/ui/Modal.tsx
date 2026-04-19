@@ -34,26 +34,26 @@ export function Modal({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className={`w-full ${widthClass} rounded-2xl border border-ink-800 bg-ink-900 shadow-xl`}
+        className={`w-full ${widthClass} rounded-2xl border border-slate-200 bg-white shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-ink-800 px-5 py-3">
-          <h2 className="text-sm font-semibold text-ink-50">{title}</h2>
+        <header className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-ink-400 hover:text-ink-100"
+            className="text-slate-500 hover:text-slate-900"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
         <div className="px-5 py-4 space-y-4">{children}</div>
         {footer && (
-          <footer className="flex justify-end gap-2 border-t border-ink-800 px-5 py-3">
+          <footer className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">
             {footer}
           </footer>
         )}

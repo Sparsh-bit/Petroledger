@@ -15,10 +15,10 @@ export function CTABanner() {
           Spin up your first pump on PetroLedger — no card, no setup call, no spreadsheet imports.
         </p>
         <Link
-          to="/login"
+          to="/request-access"
           className="mt-10 inline-flex items-center gap-2 h-12 px-8 rounded-full bg-amber-400 text-slate-950 font-medium hover:bg-amber-300 transition-all duration-200 shadow-glow-amber"
         >
-          Launch your dashboard
+          Request access
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>

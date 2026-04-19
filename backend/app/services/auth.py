@@ -97,13 +97,20 @@ class AuthService:
         )
         return tenant, owner, tokens
 
-    # ── Owner Self-Registration (legacy — kept for test compatibility) ──────
+    # ── Legacy self-registration (kept for test compatibility) ───────────
+    #
+    # ``register_tenant_owner`` above is the canonical entry point for a new
+    # dealer + owner account. This helper exists only to keep older tests
+    # that exercised a pre-tenant path working. New tenant registrations
+    # route through ``register_tenant_owner`` and receive ``UserRole.OWNER``.
 
     async def register_owner(self, payload: RegisterRequest, tenant_id: uuid.UUID) -> User:
-        """Public self-registration — always creates a WORKER with org_id=NULL.
+        """Create the first user of an existing tenant as an OWNER.
 
-        Role is intentionally hardcoded to WORKER regardless of any input.
-        # TODO: Implement invite-based owner creation in multi-tenancy phase.
+        Used when a tenant row is created out-of-band (e.g. test fixtures or
+        an internal provisioning script) and the owner account must be
+        attached afterwards. No public route exposes this — it is called
+        from tests and scripts only.
         """
         existing = await self.db.execute(
             select(User).where(User.email == payload.email)
@@ -115,9 +122,69 @@ class AuthService:
             email=payload.email,
             phone=payload.phone,
             hashed_password=hash_password(payload.password),
-            role=UserRole.WORKER,  # Always WORKER — owners created via invite system
+            role=UserRole.OWNER,
             tenant_id=tenant_id,
             org_id=None,
+            is_active=True,
+        )
+        self.db.add(user)
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user
+
+    # ── Staff Creation (RBAC-Gated) ────────────────────────────────────
+
+    # Which roles each actor role is allowed to create within its tenant.
+    _ROLE_CREATION_MATRIX: dict[UserRole, frozenset[UserRole]] = {
+        UserRole.OWNER: frozenset(
+            {UserRole.ADMIN, UserRole.MANAGER, UserRole.WORKER}
+        ),
+        UserRole.ADMIN: frozenset({UserRole.MANAGER, UserRole.WORKER}),
+    }
+
+    @classmethod
+    def can_create_role(cls, actor_role: UserRole, target_role: UserRole) -> bool:
+        """Return True when *actor_role* may create a user with *target_role*."""
+        allowed = cls._ROLE_CREATION_MATRIX.get(actor_role, frozenset())
+        return target_role in allowed
+
+    async def create_staff_user(
+        self,
+        *,
+        actor: User,
+        email: str,
+        password: str,
+        role: UserRole,
+        org_id: uuid.UUID | None = None,
+    ) -> User:
+        """Create a staff user on behalf of *actor*.
+
+        Enforces:
+          - actor.role can create target role (see _ROLE_CREATION_MATRIX)
+          - email is globally unique
+          - new user inherits actor.tenant_id (never cross-tenant)
+        """
+        from app.core.exceptions import AuthorizationError
+
+        if not self.can_create_role(actor.role, role):
+            raise AuthorizationError(
+                f"Role '{actor.role.value}' cannot create users with role "
+                f"'{role.value}'."
+            )
+
+        existing = await self.db.execute(select(User).where(User.email == email))
+        if existing.scalar_one_or_none() is not None:
+            raise DuplicateError(f"User with email '{email}' already exists")
+
+        if len(password) < 8:
+            raise ValidationError("Password must be at least 8 characters.")
+
+        user = User(
+            email=email,
+            hashed_password=hash_password(password),
+            role=role,
+            tenant_id=actor.tenant_id,
+            org_id=org_id or actor.org_id,
             is_active=True,
         )
         self.db.add(user)

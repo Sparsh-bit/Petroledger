@@ -31,12 +31,12 @@ export function OrgSelector() {
   if (orgs.length <= 1) return null;
 
   return (
-    <label className="text-xs text-ink-400 flex items-center gap-2">
+    <label className="text-xs text-slate-600 flex items-center gap-2">
       <span className="uppercase tracking-wider">Org</span>
       <select
         value={selectedOrgId ?? ""}
         onChange={(e) => selectOrg(e.target.value || null)}
-        className="rounded-md border border-ink-700 bg-ink-900/80 px-2 py-1 text-sm text-ink-100 focus:border-brand-400 outline-none"
+        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 focus:border-slate-500 outline-none"
       >
         {orgs.map((o) => (
           <option key={o.id} value={o.id}>

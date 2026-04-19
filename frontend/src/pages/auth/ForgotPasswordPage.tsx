@@ -30,35 +30,37 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-ink-950 text-ink-100 px-6 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6 py-12">
       <div className="w-full max-w-md">
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-ink-200 mb-10"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-10"
         >
           <ArrowLeft className="h-4 w-4" /> Back to sign in
         </Link>
-        <div className="flex items-center gap-2 font-bold text-lg">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/20 text-brand-300">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm">
             <Fuel className="h-4 w-4" />
           </span>
-          Petro<span className="text-brand-400">Ledger</span>
+          <div className="font-bold text-lg text-slate-900">
+            Petro<span className="text-indigo-600">Ledger</span>
+          </div>
         </div>
-        <h1 className="mt-8 text-3xl font-bold tracking-tight">
+        <h1 className="mt-8 text-2xl font-bold tracking-tight text-slate-900">
           Forgot password
         </h1>
-        <p className="mt-2 text-sm text-ink-400">
+        <p className="mt-1 text-sm text-slate-500">
           Enter your email and we&apos;ll send you a link to reset your password.
         </p>
 
         {sent ? (
-          <div className="mt-8 rounded-lg border border-brand-500/30 bg-brand-500/10 px-4 py-4 text-sm text-brand-200">
+          <div className="mt-8 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
             Check your email — if an account exists for{" "}
             <span className="font-mono">{email}</span>, a reset link is on its
             way.
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
             <Input
               label="Email"
               name="email"
@@ -72,7 +74,7 @@ export default function ForgotPasswordPage() {
             {error && (
               <div
                 role="alert"
-                className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+                className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
               >
                 {error}
               </div>

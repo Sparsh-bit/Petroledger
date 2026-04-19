@@ -12,13 +12,13 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-brand-500 text-ink-950 hover:bg-brand-400 shadow-glow focus-visible:ring-2 ring-brand-300",
+      "bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm shadow-indigo-200",
     secondary:
-      "bg-ink-800 text-ink-100 hover:bg-ink-700 border border-ink-700",
-    ghost: "text-ink-200 hover:bg-ink-800/60",
+      "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200",
+    ghost: "text-slate-600 hover:bg-slate-100",
     danger: "bg-red-600 text-white hover:bg-red-500",
   };
   return <button className={cx(base, variants[variant], className)} {...props} />;
@@ -37,7 +37,7 @@ export function Input({ label, error, mono, className, id, ...props }: InputProp
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-xs font-medium uppercase tracking-wide text-ink-400"
+          className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500"
         >
           {label}
         </label>
@@ -45,8 +45,8 @@ export function Input({ label, error, mono, className, id, ...props }: InputProp
       <input
         id={inputId}
         className={cx(
-          "w-full rounded-lg border bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50 placeholder:text-ink-500 outline-none transition focus:border-brand-400 focus:bg-ink-900",
-          error ? "border-red-500" : "border-ink-700",
+          "w-full h-10 rounded-xl border bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10",
+          error ? "border-red-500" : "border-slate-200",
           mono && "font-mono tracking-wider uppercase",
           className,
         )}
@@ -55,7 +55,7 @@ export function Input({ label, error, mono, className, id, ...props }: InputProp
         {...props}
       />
       {error && (
-        <p id={`${inputId}-err`} className="text-xs text-red-400">
+        <p id={`${inputId}-err`} className="text-xs text-red-600">
           {error}
         </p>
       )}
@@ -70,7 +70,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-2xl border border-ink-800 bg-ink-900/50 backdrop-blur-sm p-6",
+        "rounded-xl border border-slate-100 bg-white p-5 shadow-sm",
         className,
       )}
       {...props}
@@ -78,7 +78,7 @@ export function Card({
   );
 }
 
-type BadgeTone = "green" | "amber" | "red" | "slate" | "blue";
+type BadgeTone = "green" | "amber" | "red" | "slate" | "blue" | "indigo";
 
 export function Badge({
   tone = "slate",
@@ -90,11 +90,12 @@ export function Badge({
   className?: string;
 }) {
   const tones: Record<BadgeTone, string> = {
-    green: "bg-brand-500/15 text-brand-300 border-brand-500/30",
-    amber: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-    red: "bg-red-500/15 text-red-300 border-red-500/30",
-    slate: "bg-ink-700/40 text-ink-300 border-ink-600",
-    blue: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+    green: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    amber: "bg-amber-50 text-amber-700 border-amber-200",
+    red: "bg-red-50 text-red-700 border-red-200",
+    slate: "bg-slate-50 text-slate-600 border-slate-200",
+    blue: "bg-sky-50 text-sky-700 border-sky-200",
+    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
   };
   return (
     <span

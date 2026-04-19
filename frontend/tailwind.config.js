@@ -50,9 +50,14 @@ export default {
           "0%, 100%": { transform: "translate(0, 0)" },
           "50%": { transform: "translate(8px, -6px)" },
         },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         dotPatternMotion: "dotPatternMotion 18s ease-in-out infinite",
+        shimmer: "shimmer 1.6s infinite",
       },
     },
   },

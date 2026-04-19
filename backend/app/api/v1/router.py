@@ -15,6 +15,11 @@ from app.api.v1.provider.routes import router as provider_router
 from app.api.v1.meter_readings.routes import router as meter_readings_router
 from app.api.v1.auth.routes import router as auth_router
 from app.api.v1.cash_entries.routes import router as cash_entries_router
+from app.api.v1.contact.routes import router as contact_router
+from app.api.v1.access_requests.routes import router as access_requests_router
+from app.api.v1.provider.access_requests_routes import (
+    router as provider_access_requests_router,
+)
 from app.api.v1.data_ingestion.routes import router as data_ingestion_router
 from app.api.v1.fleet_transactions.routes import router as fleet_transactions_router
 from app.api.v1.fms_transactions.routes import router as fms_transactions_router
@@ -25,8 +30,10 @@ from app.api.v1.pos_batch_settlements.routes import (
 )
 from app.api.v1.pumps.routes import router as pumps_router
 from app.api.v1.reconciliation.routes import router as reconciliation_router
+from app.api.v1.reports.routes import router as reports_router
 from app.api.v1.shifts.routes import router as shifts_router
 from app.api.v1.tenants.routes import router as tenants_router
+from app.api.v1.users.routes import router as users_router
 from app.api.v1.workers.routes import router as workers_router
 
 api_router = APIRouter()
@@ -60,6 +67,11 @@ api_router.include_router(
     workers_router,
     prefix="/workers",
     tags=["Workers"],
+)
+api_router.include_router(
+    users_router,
+    prefix="/users",
+    tags=["Users"],
 )
 api_router.include_router(
     shifts_router,
@@ -141,6 +153,11 @@ api_router.include_router(
     tags=["Analytics"],
 )
 api_router.include_router(
+    reports_router,
+    prefix="/reports",
+    tags=["Reports"],
+)
+api_router.include_router(
     inventory_router,
     prefix="/inventory",
     tags=["Inventory"],
@@ -149,4 +166,19 @@ api_router.include_router(
     maintenance_router,
     prefix="/maintenance",
     tags=["Maintenance"],
+)
+api_router.include_router(
+    contact_router,
+    prefix="/contact",
+    tags=["Contact"],
+)
+api_router.include_router(
+    access_requests_router,
+    prefix="/access-requests",
+    tags=["Access Requests"],
+)
+api_router.include_router(
+    provider_access_requests_router,
+    prefix="/provider",
+    tags=["Provider Portal"],
 )
