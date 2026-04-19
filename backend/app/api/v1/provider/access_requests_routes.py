@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+import logging
+import secrets
+import string
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.provider.routes import require_superadmin  # noqa: F401
+from app.api.v1.provider.routes import (  # noqa: F401
+    provision_tenant_workspace,
+    require_superadmin,
+)
 from app.db.session import get_db
 from app.models.access_request import AccessRequest, AccessRequestStatus
+from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.access_request import (
     AccessRequestList,
@@ -18,6 +25,15 @@ from app.schemas.access_request import (
     AccessRequestStats,
     AccessRequestUpdate,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _generate_temp_password(length: int = 12) -> str:
+    """Readable temp password — mixed case + digits + 1 symbol."""
+    alphabet = string.ascii_letters + string.digits
+    body = "".join(secrets.choice(alphabet) for _ in range(length - 1))
+    return body + secrets.choice("!@#$%&*")
 
 router = APIRouter()
 
@@ -167,15 +183,60 @@ async def update_access_request(
     if not row:
         raise HTTPException(status_code=404, detail="Not found.")
 
+    new_status: AccessRequestStatus | None = None
     if payload.status is not None:
         try:
-            row.status = AccessRequestStatus(payload.status)
+            new_status = AccessRequestStatus(payload.status)
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status."
             ) from exc
+        row.status = new_status
     if payload.provider_notes is not None:
         row.provider_notes = payload.provider_notes.strip() or None
+
+    # Transitioning to APPROVED = provision a full tenant workspace
+    # (tenant + organization + first pump + owner user) and email the
+    # credentials. Idempotent: if a tenant already exists for this email
+    # we skip provisioning and just flip the status.
+    if (
+        new_status == AccessRequestStatus.APPROVED
+        and row.email
+    ):
+        email = row.email.lower().strip()
+        existing = (
+            await db.execute(select(Tenant).where(Tenant.owner_email == email))
+        ).scalar_one_or_none()
+        if existing is None:
+            # Commit the status change first so the row reflects intent
+            # even if SMTP or provisioning fails partway through.
+            await db.commit()
+            temp_password = _generate_temp_password()
+            try:
+                await provision_tenant_workspace(
+                    db,
+                    tenant_name=row.company or row.full_name,
+                    owner_name=row.full_name,
+                    owner_email=email,
+                    owner_phone=row.phone,
+                    password=temp_password,
+                    pump_code=None,  # auto-generate
+                    subscription_plan="BASIC",
+                    monthly_price_inr=0,
+                )
+            except HTTPException:
+                # Already-exists race or similar — logged for the operator,
+                # but the status change still sticks.
+                logger.exception(
+                    "Provisioning failed for approved access request %s", row.id
+                )
+            # Refetch the row (session was committed inside provision).
+            row = (
+                await db.execute(
+                    select(AccessRequest).where(AccessRequest.id == rid)
+                )
+            ).scalar_one()
+            return _serialize(row)
 
     await db.commit()
     await db.refresh(row)
