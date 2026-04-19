@@ -38,7 +38,7 @@ class PagedResponse(BaseModel, Generic[T]):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    data: list[T]
+    items: list[T]
     total: int
     page: int
     page_size: int
@@ -79,7 +79,7 @@ async def paginate(
     rows = (await db.execute(data_stmt)).scalars().all()
 
     return PagedResponse(
-        data=[response_schema.model_validate(r) for r in rows],
+        items=[response_schema.model_validate(r) for r in rows],
         total=total,
         page=page,
         page_size=page_size,
