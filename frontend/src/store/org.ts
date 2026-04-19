@@ -43,6 +43,25 @@ export const useOrgStore = create<OrgState>()(
 );
 
 /**
+ * One-shot fetch of the current user's visible organizations. Callable
+ * from anywhere (not just React) — use this after any action that could
+ * have implicitly created a new org (e.g. backend self-healing on first
+ * pump create) so downstream pages see the fresh list.
+ */
+export async function refreshOrgs(): Promise<OrgSummary[]> {
+  try {
+    const res = await api.get<{ items: OrgSummary[] }>(
+      "/organizations/?page=1&page_size=50",
+    );
+    const items = res.data?.items ?? [];
+    useOrgStore.getState().setOrgs(items);
+    return items;
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Ensure the org store is hydrated for the current session. Safe to call
  * from any admin page that relies on `selectedOrgId` — duplicate calls
  * across mounted pages are idempotent (no-op when orgs are already
@@ -50,22 +69,9 @@ export const useOrgStore = create<OrgState>()(
  * yet made its first fetch.
  */
 export function useEnsureOrgs(): void {
-  const { orgs, setOrgs } = useOrgStore();
+  const orgsLen = useOrgStore((s) => s.orgs.length);
   useEffect(() => {
-    if (orgs.length > 0) return;
-    let cancel = false;
-    void (async () => {
-      try {
-        const res = await api.get<{ items: OrgSummary[] }>(
-          "/organizations/?page=1&page_size=50",
-        );
-        if (!cancel) setOrgs(res.data?.items ?? []);
-      } catch {
-        /* non-fatal — pages degrade to empty-state UIs */
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, [orgs.length, setOrgs]);
+    if (orgsLen > 0) return;
+    void refreshOrgs();
+  }, [orgsLen]);
 }

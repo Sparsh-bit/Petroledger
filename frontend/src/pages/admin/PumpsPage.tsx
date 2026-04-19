@@ -7,7 +7,7 @@ import { Modal } from "../../components/ui/Modal";
 import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Pump } from "../../api/admin";
-import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { useOrgStore, useEnsureOrgs, refreshOrgs } from "../../store/org";
 
 function errMsg(err: unknown, fallback: string): string {
   const e = err as { response?: { data?: { detail?: string } }; message?: string };
@@ -185,6 +185,9 @@ function CreatePumpModal({
         location: location.trim() || undefined,
         nozzle_count: nozzleCount,
       });
+      // Backend may have self-healed by creating a default org — pull the
+      // fresh list so downstream pages (dashboard, shifts, etc.) see it.
+      await refreshOrgs();
       toast.success("Pump created.");
       setName("");
       setLocation("");

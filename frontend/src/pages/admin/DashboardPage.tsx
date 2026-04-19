@@ -10,7 +10,7 @@ import {
 import { Link } from "react-router-dom";
 import { adminApi, AnomalyFlag, Shift } from "../../api/admin";
 import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
-import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { useOrgStore, useEnsureOrgs, refreshOrgs } from "../../store/org";
 
 interface KpiCard {
   label: string;
@@ -40,31 +40,42 @@ function statusTone(status: string): string {
 }
 
 export default function AdminDashboardPage() {
-  const { selectedOrgId, orgs } = useOrgStore();
+  const { selectedOrgId } = useOrgStore();
+  useEnsureOrgs();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [shiftsTotal, setShiftsTotal] = useState<number>(0);
   const [flags, setFlags] = useState<AnomalyFlag[]>([]);
   const [varianceTotal, setVarianceTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Load KPIs. If no org is selected (e.g. backend just self-healed one),
+  // still attempt the load with org_id undefined — the admin APIs fall
+  // back to tenant-scoped data. We also refresh the org list so the UI
+  // picks up the newly-created org without a manual reload.
   useEffect(() => {
-    if (!selectedOrgId) return;
     let cancel = false;
 
     (async () => {
       setLoading(true);
       try {
+        void refreshOrgs();
         const [shiftsRes, anomaliesRes, varianceRes] = await Promise.all([
-          adminApi.getShifts({ page: 1, page_size: 10, org_id: selectedOrgId }),
+          adminApi.getShifts({
+            page: 1,
+            page_size: 10,
+            org_id: selectedOrgId ?? undefined,
+          }),
           adminApi
             .getAnomalies({
-              site_id: selectedOrgId,
+              site_id: selectedOrgId ?? undefined,
               is_resolved: false,
               page: 1,
               page_size: 5,
             })
             .catch(() => ({ items: [], total: 0 })),
-          adminApi.getVarianceTrend(selectedOrgId, 30).catch(() => []),
+          selectedOrgId
+            ? adminApi.getVarianceTrend(selectedOrgId, 30).catch(() => [])
+            : Promise.resolve([]),
         ]);
         if (cancel) return;
         setShifts(shiftsRes?.items ?? []);
@@ -87,28 +98,6 @@ export default function AdminDashboardPage() {
       cancel = true;
     };
   }, [selectedOrgId]);
-
-  if (orgs.length === 0) {
-    return (
-      <DashboardShell>
-        <EmptyOrgState
-          title="No organisations yet"
-          description="Add your first pump location to start tracking shifts and reconciliation."
-          cta={{ to: "/admin/pumps", label: "Add a pump" }}
-        />
-      </DashboardShell>
-    );
-  }
-  if (!selectedOrgId) {
-    return (
-      <DashboardShell>
-        <EmptyOrgState
-          title="Pick an organisation"
-          description="Select an organisation in the top bar to see live KPIs."
-        />
-      </DashboardShell>
-    );
-  }
 
   const activeShifts = shifts.filter((s) => s.status === "ACTIVE").length;
   const pendingRecon = shifts.filter(

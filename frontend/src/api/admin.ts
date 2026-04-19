@@ -304,7 +304,7 @@ export const adminApi = {
 
   // ── Anomalies ─────────────────────────────────────────────────────
   getAnomalies: (params: {
-    site_id: string;
+    site_id?: string;
     shift_id?: string;
     is_resolved?: boolean;
     severity?: string;
