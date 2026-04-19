@@ -38,6 +38,15 @@ _FEATURES: list[tuple[str, str, str, bool, str]] = [
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    if inspector.has_table("tenant_features") and inspector.has_table(
+        "tenant_feature_overrides"
+    ) and inspector.has_table("tenant_payment_configs"):
+        # Already applied — skip table creation and seed.
+        return
+
     op.create_table(
         "tenant_features",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
