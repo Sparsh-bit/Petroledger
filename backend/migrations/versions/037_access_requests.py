@@ -22,17 +22,19 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    # Idempotent: tolerate a leftover enum type from a partial prior run.
-    sa.Enum(
-        "NEW",
-        "CONTACTED",
-        "APPROVED",
-        "REJECTED",
-        name="access_request_status",
-    ).create(bind, checkfirst=True)
+    # Idempotent via raw PG: SQLAlchemy's checkfirst is unreliable over asyncpg
+    # here and kept re-emitting CREATE TYPE on re-runs.
+    op.execute(
+        """
+        DO $$ BEGIN
+            CREATE TYPE access_request_status AS ENUM
+                ('NEW', 'CONTACTED', 'APPROVED', 'REJECTED');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
 
     if inspector.has_table("access_requests"):
-        # Table already present from a prior partial/manual run — nothing left to do.
         return
 
     status_enum = sa.Enum(
