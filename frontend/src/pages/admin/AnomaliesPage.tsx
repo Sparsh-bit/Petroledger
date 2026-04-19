@@ -52,7 +52,7 @@ export default function AnomaliesPage() {
         page_size: pageSize,
       });
       setItems(res?.items ?? []);
-      setTotal(res.total);
+      setTotal(res?.total ?? 0);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load anomalies."));
     } finally {
