@@ -41,10 +41,10 @@ export default function ManagerShiftsPage() {
         adminApi.getPumps({ page: 1, page_size: 100 }),
         adminApi.getWorkers({ page: 1, page_size: 200 }),
       ]);
-      setShifts(shiftsRes.items);
-      setTotal(shiftsRes.total);
-      setPumps(pumpsRes.items);
-      setWorkers(workersRes.items);
+      setShifts(Array.isArray(shiftsRes) ? shiftsRes : shiftsRes?.items ?? []);
+      setTotal(shiftsRes?.total ?? 0);
+      setPumps(Array.isArray(pumpsRes) ? pumpsRes : pumpsRes?.items ?? []);
+      setWorkers(Array.isArray(workersRes) ? workersRes : workersRes?.items ?? []);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load shifts."));
     } finally {

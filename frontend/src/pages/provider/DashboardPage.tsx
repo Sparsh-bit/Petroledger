@@ -39,14 +39,14 @@ export default function ProviderDashboardPage() {
     Promise.all([providerApi.getProviderKpis(), providerApi.getTenants()])
       .then(([s, o]) => {
         setStats(s);
-        setRecent(o.slice(0, 6));
+        setRecent((Array.isArray(o) ? o : []).slice(0, 6));
       })
       .catch((e) => setError(e?.message ?? "Failed to load"));
     accessRequestsApi
       .list({ status: "NEW", page_size: 5 })
       .then((r) => {
-        setNewRequests(r.items);
-        setNewRequestCount(r.total);
+        setNewRequests(r?.items ?? []);
+        setNewRequestCount(r?.total ?? 0);
       })
       .catch(() => {
         /* non-blocking */

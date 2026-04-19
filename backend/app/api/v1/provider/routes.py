@@ -6,7 +6,9 @@ PetroLedger). Lists tenants, lock/unlock, adjust subscriptions, KPIs.
 
 from __future__ import annotations
 
+import logging
 import re
+import secrets
 import uuid
 from datetime import datetime
 from typing import Any
@@ -17,8 +19,11 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps.auth import get_current_active_user
+from app.core.email import send_email
 from app.core.security import hash_password
 from app.core.tenant_lock_cache import invalidate_tenant_lock
+
+logger = logging.getLogger(__name__)
 from app.db.session import get_db
 from app.models.organization import Organization
 from app.models.pump import Pump
@@ -77,7 +82,7 @@ class TenantCreateRequest(BaseModel):
     owner_email: EmailStr
     owner_phone: str = Field(..., min_length=6, max_length=20)
     password: str = Field(..., min_length=8, max_length=64)
-    pump_code: str = Field(..., min_length=3, max_length=32)
+    pump_code: str | None = Field(default=None, max_length=32)
     org_name: str | None = Field(default=None, max_length=255)
     pump_name: str | None = Field(default=None, max_length=255)
     subscription_plan: str = Field(default="BASIC")
@@ -175,10 +180,67 @@ async def _summarize_tenant(db: AsyncSession, tenant: Tenant) -> OrganizationSum
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
+# Pump-code alphabet — excludes 0/O/1/I to keep codes readable when typed.
+_PUMP_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
 
 def _slugify(value: str) -> str:
     slug = _SLUG_RE.sub("-", value.strip().lower()).strip("-")
     return slug or "tenant"
+
+
+async def _generate_unique_pump_code(db: AsyncSession) -> str:
+    """Produce a unique, human-friendly pump code like PL-ABCD-2345.
+
+    Retries on collision; after a few tries the odds of another collision
+    are ~0 (32^8 ≈ 1e12 space), so this loop practically always exits on
+    attempt 1.
+    """
+    for _ in range(8):
+        core = "".join(secrets.choice(_PUMP_CODE_ALPHABET) for _ in range(8))
+        candidate = f"PL-{core[:4]}-{core[4:]}"
+        existing = (
+            await db.execute(select(Pump.id).where(Pump.code == candidate))
+        ).scalar_one_or_none()
+        if existing is None:
+            return candidate
+    raise HTTPException(
+        status_code=500, detail="Could not generate a unique pump code — try again."
+    )
+
+
+def _welcome_email_html(
+    *, tenant_name: str, owner_name: str, owner_email: str,
+    pump_code: str, password: str,
+) -> str:
+    return f"""<!doctype html>
+<html><body style="font-family:Inter,system-ui,sans-serif;background:#f8fafc;margin:0;padding:24px;color:#0f172a;">
+  <table style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:32px;">
+    <tr><td>
+      <h1 style="font-size:20px;margin:0 0 8px;">Welcome to PetroLedger, {owner_name}</h1>
+      <p style="color:#475569;margin:0 0 20px;font-size:14px;">
+        Your <strong>{tenant_name}</strong> workspace is ready. Use the credentials
+        below to sign in at the pump staff portal. Share the pump code with
+        every admin, manager and worker at this location — they'll all need it
+        to log in alongside their own email and password.
+      </p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0 20px;">
+        <tr><td style="padding:8px 0;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Pump Code</td>
+            <td style="padding:8px 0;font-family:JetBrains Mono,ui-monospace,monospace;font-size:15px;font-weight:700;color:#4338ca;text-align:right;">{pump_code}</td></tr>
+        <tr><td style="padding:8px 0;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-top:1px solid #f1f5f9;">Email</td>
+            <td style="padding:8px 0;font-size:14px;text-align:right;border-top:1px solid #f1f5f9;">{owner_email}</td></tr>
+        <tr><td style="padding:8px 0;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-top:1px solid #f1f5f9;">Temporary Password</td>
+            <td style="padding:8px 0;font-family:JetBrains Mono,ui-monospace,monospace;font-size:14px;text-align:right;border-top:1px solid #f1f5f9;">{password}</td></tr>
+      </table>
+      <p style="font-size:13px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin:0 0 20px;">
+        Please change your password after your first sign-in from Settings → Security.
+      </p>
+      <p style="font-size:12px;color:#94a3b8;margin:24px 0 0;">
+        — The PetroLedger Team · support@petroledger.in
+      </p>
+    </td></tr>
+  </table>
+</body></html>"""
 
 
 async def _unique_slug(db: AsyncSession, base: str) -> str:
@@ -211,18 +273,27 @@ async def create_organization(
     normalised to upper-case and must be unique platform-wide — it becomes
     the login key every tenant user types alongside their email+password.
     """
-    pump_code = payload.pump_code.strip().upper()
     email = payload.owner_email.lower().strip()
 
-    # Uniqueness checks — email (users + tenants), pump_code.
+    # Uniqueness checks — email (users + tenants).
     if (await db.execute(select(User).where(User.email == email))).scalar_one_or_none() is not None:
         raise HTTPException(status_code=409, detail=f"Email '{email}' is already registered.")
     if (
         await db.execute(select(Tenant).where(Tenant.owner_email == email))
     ).scalar_one_or_none() is not None:
         raise HTTPException(status_code=409, detail=f"A tenant with email '{email}' already exists.")
-    if (await db.execute(select(Pump).where(Pump.code == pump_code))).scalar_one_or_none() is not None:
-        raise HTTPException(status_code=409, detail=f"Pump code '{pump_code}' is already in use.")
+
+    # Pump code: respect caller-supplied value if given, otherwise auto-generate.
+    if payload.pump_code and payload.pump_code.strip():
+        pump_code = payload.pump_code.strip().upper()
+        if (
+            await db.execute(select(Pump).where(Pump.code == pump_code))
+        ).scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=409, detail=f"Pump code '{pump_code}' is already in use."
+            )
+    else:
+        pump_code = await _generate_unique_pump_code(db)
 
     tenant = Tenant(
         name=payload.tenant_name,
@@ -270,6 +341,26 @@ async def create_organization(
 
     await db.commit()
     await db.refresh(tenant)
+
+    # Fire-and-forget welcome email with credentials. Email failures must
+    # never rollback the tenant creation — they're logged and swallowed.
+    try:
+        await send_email(
+            to=email,
+            subject=f"Your PetroLedger workspace is ready — pump code {pump_code}",
+            html_body=_welcome_email_html(
+                tenant_name=payload.tenant_name,
+                owner_name=payload.owner_name,
+                owner_email=email,
+                pump_code=pump_code,
+                password=payload.password,
+            ),
+        )
+    except Exception:
+        logger.exception(
+            "Welcome email failed for tenant=%s email=%s", tenant.id, email
+        )
+
     return await _summarize_tenant(db, tenant)
 
 

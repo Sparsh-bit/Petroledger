@@ -33,7 +33,7 @@ export default function PumpsPage() {
         page,
         page_size: pageSize,
       });
-      setPumps(res.items);
+      setPumps(res?.items ?? []);
       setTotal(res.total);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load pumps."));

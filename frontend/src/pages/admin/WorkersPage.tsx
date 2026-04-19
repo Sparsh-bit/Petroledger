@@ -40,9 +40,9 @@ export default function WorkersPage() {
           page_size: 100,
         }),
       ]);
-      setWorkers(workersRes.items);
-      setTotal(workersRes.total);
-      setPumps(pumpsRes.items);
+      setWorkers(Array.isArray(workersRes) ? workersRes : workersRes?.items ?? []);
+      setTotal(workersRes?.total ?? 0);
+      setPumps(Array.isArray(pumpsRes) ? pumpsRes : pumpsRes?.items ?? []);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load workers."));
     } finally {

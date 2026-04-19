@@ -90,18 +90,22 @@ export default function TenantsPage() {
     if (creating) return;
     setCreating(true);
     try {
+      const trimmedCode = createForm.pump_code.trim().toUpperCase();
       await providerApi.createTenant({
         tenant_name: createForm.tenant_name.trim(),
         owner_name: createForm.owner_name.trim(),
         owner_email: createForm.owner_email.trim().toLowerCase(),
         owner_phone: createForm.owner_phone.trim(),
         password: createForm.password,
-        pump_code: createForm.pump_code.trim().toUpperCase(),
+        pump_code: trimmedCode || undefined,
         pump_name: createForm.pump_name.trim() || undefined,
         subscription_plan: createForm.subscription_plan,
         monthly_price_inr: Number(createForm.monthly_price_inr) || 0,
       });
-      toast.success("Tenant created.");
+      toast.success(
+        `Tenant created. Credentials emailed to ${createForm.owner_email.trim()}.`,
+        { duration: 6000 },
+      );
       setShowCreate(false);
       setCreateForm(EMPTY_CREATE_FORM);
       void load();
@@ -287,19 +291,24 @@ export default function TenantsPage() {
             className="sm:col-span-2"
             placeholder="e.g. Sharma Fuels Pvt Ltd"
           />
-          <Input
-            label="Pump code"
-            required
-            mono
-            value={createForm.pump_code}
-            onChange={(e) =>
-              setCreateForm((f) => ({
-                ...f,
-                pump_code: e.target.value.toUpperCase(),
-              }))
-            }
-            placeholder="MUM-BAN-042"
-          />
+          <div className="space-y-1.5">
+            <Input
+              label="Pump code (optional)"
+              mono
+              value={createForm.pump_code}
+              onChange={(e) =>
+                setCreateForm((f) => ({
+                  ...f,
+                  pump_code: e.target.value.toUpperCase(),
+                }))
+              }
+              placeholder="Leave blank to auto-generate"
+            />
+            <p className="text-[11px] text-slate-500">
+              Leave blank — we'll generate a <span className="font-mono">PL-XXXX-XXXX</span>{" "}
+              code and email it to the owner.
+            </p>
+          </div>
           <Input
             label="Pump name"
             value={createForm.pump_name}

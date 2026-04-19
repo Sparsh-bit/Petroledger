@@ -41,7 +41,7 @@ export default function AuditLogsPage() {
         page,
         page_size: pageSize,
       });
-      setItems(res.items);
+      setItems(res?.items ?? []);
       setTotal(res.total);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load audit logs."));

@@ -33,7 +33,7 @@ export default function InventoryPage() {
       const res = await adminApi.getTanks({
         org_id: selectedOrgId ?? undefined,
       });
-      setTanks(res.items);
+      setTanks(res?.items ?? []);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load tanks."));
     } finally {

@@ -41,7 +41,7 @@ export default function ReportsPage() {
           page: 1,
           page_size: 50,
         });
-        if (!cancel) setShifts(res.items);
+        if (!cancel) setShifts(res?.items ?? []);
       } catch {
         /* non-fatal */
       }

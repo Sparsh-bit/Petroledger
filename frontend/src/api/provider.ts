@@ -114,7 +114,7 @@ export const providerApi = {
     owner_email: string;
     owner_phone: string;
     password: string;
-    pump_code: string;
+    pump_code?: string;
     org_name?: string;
     pump_name?: string;
     subscription_plan?: "BASIC" | "PRO" | "ENTERPRISE";

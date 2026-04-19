@@ -50,8 +50,8 @@ export default function ShiftsPage() {
         page,
         page_size: pageSize,
       });
-      setShifts(res.items);
-      setTotal(res.total);
+      setShifts(res?.items ?? []);
+      setTotal(res?.total ?? 0);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load shifts."));
     } finally {
@@ -75,8 +75,8 @@ export default function ShiftsPage() {
             page_size: 200,
           }),
         ]);
-        setPumps(p.items);
-        setWorkers(w.items);
+        setPumps(Array.isArray(p) ? p : p?.items ?? []);
+        setWorkers(Array.isArray(w) ? w : w?.items ?? []);
       } catch {
         /* best effort */
       }

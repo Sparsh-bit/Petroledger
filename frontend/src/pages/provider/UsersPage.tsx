@@ -32,7 +32,7 @@ export default function ProviderUsersPage() {
         search: search || undefined,
         role: role || undefined,
       });
-      setItems(r.items);
+      setItems(r?.items ?? []);
       setTotal(r.total);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load users."));
