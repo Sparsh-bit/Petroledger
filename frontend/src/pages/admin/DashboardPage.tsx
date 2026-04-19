@@ -8,7 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { adminApi, AnomalyFlag, Shift } from "../../api/admin";
+import { adminApi, AnomalyFlag, Pump, Shift } from "../../api/admin";
 import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
 import { useOrgStore, useEnsureOrgs, refreshOrgs } from "../../store/org";
 
@@ -46,6 +46,8 @@ export default function AdminDashboardPage() {
   const [shiftsTotal, setShiftsTotal] = useState<number>(0);
   const [flags, setFlags] = useState<AnomalyFlag[]>([]);
   const [varianceTotal, setVarianceTotal] = useState<number | null>(null);
+  const [pumps, setPumps] = useState<Pump[]>([]);
+  const [pumpsTotal, setPumpsTotal] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
   // Load KPIs. If no org is selected (e.g. backend just self-healed one),
@@ -59,7 +61,7 @@ export default function AdminDashboardPage() {
       setLoading(true);
       try {
         void refreshOrgs();
-        const [shiftsRes, anomaliesRes, varianceRes] = await Promise.all([
+        const [shiftsRes, anomaliesRes, varianceRes, pumpsRes] = await Promise.all([
           adminApi.getShifts({
             page: 1,
             page_size: 10,
@@ -76,11 +78,20 @@ export default function AdminDashboardPage() {
           selectedOrgId
             ? adminApi.getVarianceTrend(selectedOrgId, 30).catch(() => [])
             : Promise.resolve([]),
+          adminApi
+            .getPumps({
+              page: 1,
+              page_size: 10,
+              org_id: selectedOrgId ?? undefined,
+            })
+            .catch(() => ({ items: [], total: 0 })),
         ]);
         if (cancel) return;
         setShifts(shiftsRes?.items ?? []);
         setShiftsTotal(shiftsRes?.total ?? 0);
         setFlags((anomaliesRes?.items ?? []).slice(0, 5));
+        setPumps(pumpsRes?.items ?? []);
+        setPumpsTotal(pumpsRes?.total ?? 0);
         const variances = Array.isArray(varianceRes) ? varianceRes : [];
         const total = variances.reduce(
           (acc, r) => acc + Number(r.total_variance ?? 0),
@@ -119,6 +130,13 @@ export default function AdminDashboardPage() {
       tone: "text-sky-600 bg-sky-50",
     },
     {
+      label: "Pumps",
+      value: pumpsTotal,
+      icon: Fuel,
+      tone: "text-purple-600 bg-purple-50",
+      hint: "Physical pumps in this org",
+    },
+    {
       label: "Active shifts",
       value: activeShifts,
       icon: Users,
@@ -145,6 +163,67 @@ export default function AdminDashboardPage() {
           <KpiCardView key={k.label} card={k} loading={loading} />
         ))}
       </div>
+
+      <section>
+        <SectionHeader
+          title="Pumps"
+          action={<Link to="/admin/pumps" className="text-sm text-emerald-600 hover:text-emerald-500">Manage →</Link>}
+        />
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          {loading ? (
+            <div className="p-4">
+              <SkeletonList rows={3} />
+            </div>
+          ) : pumps.length === 0 ? (
+            <EmptyRow
+              icon={Fuel}
+              text="No pumps yet — add your first pump from the Pumps page."
+            />
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="text-left px-5 py-3">Name</th>
+                  <th className="text-left px-5 py-3">Location</th>
+                  <th className="text-left px-5 py-3">Nozzles</th>
+                  <th className="text-left px-5 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pumps.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-3 font-medium text-slate-900">
+                      <Link
+                        to={`/admin/pumps/${p.id}`}
+                        className="hover:text-emerald-600"
+                      >
+                        {p.name}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {p.location ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {p.nozzle_count ?? 0}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          p.is_active
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {p.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
 
       <section>
         <SectionHeader
