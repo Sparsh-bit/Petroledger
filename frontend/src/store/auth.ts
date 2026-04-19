@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export type UserRole =
   | "owner"
@@ -39,7 +39,12 @@ export const useAuth = create<AuthState>()(
         set({ accessToken: null, refreshToken: null, user: null }),
       isAuthenticated: () => !!get().accessToken && !!get().user,
     }),
-    { name: "petroledger-auth" },
+    {
+      name: "petroledger-auth",
+      // Per-tab session: sessionStorage isolates auth between tabs so a
+      // provider login in one tab does not clobber an admin login in another.
+      storage: createJSONStorage(() => sessionStorage),
+    },
   ),
 );
 
