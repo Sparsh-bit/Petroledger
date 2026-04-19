@@ -156,6 +156,26 @@ export default function PumpsPage() {
   );
 }
 
+type FuelType = "petrol" | "diesel" | "cng";
+
+const FUEL_OPTIONS: { value: FuelType; label: string; tone: string }[] = [
+  { value: "petrol", label: "Petrol (MS)", tone: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+  { value: "diesel", label: "Diesel (HSD)", tone: "text-amber-700 bg-amber-50 border-amber-200" },
+  { value: "cng", label: "CNG", tone: "text-sky-700 bg-sky-50 border-sky-200" },
+];
+
+function clampNozzles(
+  n: number,
+  existing: FuelType[],
+  fallback: FuelType = "petrol",
+): FuelType[] {
+  const safe = Math.max(0, Math.min(20, n));
+  if (safe === existing.length) return existing;
+  if (safe < existing.length) return existing.slice(0, safe);
+  const extra = Array.from({ length: safe - existing.length }, () => fallback);
+  return [...existing, ...extra];
+}
+
 function CreatePumpModal({
   open,
   orgId,
@@ -170,7 +190,24 @@ function CreatePumpModal({
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [nozzleCount, setNozzleCount] = useState(2);
+  const [nozzleFuels, setNozzleFuels] = useState<FuelType[]>(["petrol", "diesel"]);
   const [busy, setBusy] = useState(false);
+
+  function setCount(n: number) {
+    setNozzleCount(n);
+    setNozzleFuels((prev) => clampNozzles(n, prev));
+  }
+
+  function setFuel(idx: number, fuel: FuelType) {
+    setNozzleFuels((prev) => prev.map((f, i) => (i === idx ? fuel : f)));
+  }
+
+  function resetForm() {
+    setName("");
+    setLocation("");
+    setCount(2);
+    setNozzleFuels(["petrol", "diesel"]);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -184,14 +221,16 @@ function CreatePumpModal({
         name: name.trim(),
         location: location.trim() || undefined,
         nozzle_count: nozzleCount,
+        nozzles: nozzleFuels.map((fuel_type, i) => ({
+          nozzle_number: i + 1,
+          fuel_type,
+        })),
       });
       // Backend may have self-healed by creating a default org — pull the
       // fresh list so downstream pages (dashboard, shifts, etc.) see it.
       await refreshOrgs();
-      toast.success("Pump created.");
-      setName("");
-      setLocation("");
-      setNozzleCount(2);
+      toast.success(`Pump "${name.trim()}" created with ${nozzleCount} nozzle(s).`);
+      resetForm();
       onCreated();
     } catch (err) {
       toast.error(errMsg(err, "Failed to create pump."));
@@ -205,6 +244,7 @@ function CreatePumpModal({
       open={open}
       onClose={onClose}
       title="Add pump"
+      widthClass="max-w-lg"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
@@ -239,9 +279,51 @@ function CreatePumpModal({
           min={0}
           max={20}
           value={nozzleCount}
-          onChange={(e) => setNozzleCount(Number(e.target.value) || 0)}
+          onChange={(e) => setCount(Number(e.target.value) || 0)}
           required
         />
+
+        {nozzleCount > 0 && (
+          <div className="space-y-2">
+            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+              Fuel per nozzle
+            </label>
+            <div className="space-y-2">
+              {nozzleFuels.map((fuel, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"
+                >
+                  <span className="text-xs font-semibold text-slate-500 w-16 shrink-0">
+                    Nozzle {i + 1}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {FUEL_OPTIONS.map((opt) => {
+                      const active = fuel === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setFuel(i, opt.value)}
+                          className={`px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wide transition ${
+                            active
+                              ? opt.tone
+                              : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Each nozzle must be tagged so later readings route to the right fuel.
+            </p>
+          </div>
+        )}
       </form>
     </Modal>
   );
