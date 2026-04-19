@@ -315,7 +315,12 @@ class AuthService:
         )
         user = result.scalar_one_or_none()
         if user is None:
-            raise NotFoundError(resource="User", identifier=user_id)
+            # User record was deleted (e.g. tenant was purged). Surface as an
+            # auth failure so the client's interceptor logs the user out
+            # cleanly instead of showing a confusing 404.
+            raise AuthenticationError(
+                "Your account no longer exists. Please log in again."
+            )
         if not user.is_active:
             raise AuthenticationError("Account is deactivated")
 
