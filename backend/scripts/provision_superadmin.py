@@ -16,12 +16,24 @@ from sqlalchemy import text
 sys.path.insert(0, ".")
 
 from app.core.security import hash_password
+from app.db.session import engine as async_engine
 from app.db.session import async_session_factory
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
 
 
 async def provision(email: str, password: str) -> None:
+    # Step 1 — ensure the Postgres enum has every role the Python model knows.
+    # ALTER TYPE ... ADD VALUE cannot run inside a transaction, so open a
+    # dedicated AUTOCOMMIT connection.
+    async with async_engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        for value in ("superadmin", "provider", "owner", "admin", "manager", "worker"):
+            await conn.execute(
+                text(f"ALTER TYPE user_role ADD VALUE IF NOT EXISTS '{value}'")
+            )
+        print("[provision] Ensured user_role enum values present.")
+
     async with async_session_factory() as db:
         # Wipe every table except alembic_version
         res = await db.execute(
