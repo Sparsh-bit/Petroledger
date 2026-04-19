@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision: str = "037"
 down_revision: str = "036"
@@ -37,7 +38,7 @@ def upgrade() -> None:
     if inspector.has_table("access_requests"):
         return
 
-    status_enum = sa.Enum(
+    status_enum = postgresql.ENUM(
         "NEW",
         "CONTACTED",
         "APPROVED",
