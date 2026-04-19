@@ -11,9 +11,9 @@ const COLS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "Features", to: "/#features" },
-      { label: "Pricing", to: "/#pricing" },
-      { label: "How it works", to: "/#how" },
+      { label: "Features", to: "/features" },
+      { label: "Pricing", to: "/pricing" },
+      { label: "How it works", to: "/how-it-works" },
       { label: "Request access", to: "/request-access" },
       { label: "Sign in", to: "/login" },
     ],

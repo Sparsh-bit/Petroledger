@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { fadeUpOnView } from "@/lib/anime-helpers";
 
 const STEPS = [
@@ -48,6 +50,16 @@ export function HowItWorks() {
               <p className="mt-2 text-slate-400 leading-relaxed text-pretty">{s.text}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-12 flex justify-center">
+          <Link
+            to="/how-it-works"
+            className="inline-flex items-center gap-2 text-sm font-medium text-amber-300 hover:text-amber-200 transition-colors"
+          >
+            Full timeline
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>

@@ -33,6 +33,9 @@ import ContactPage from "../pages/marketing/ContactPage";
 import RequestAccessPage from "../pages/marketing/RequestAccessPage";
 import PrivacyPage from "../pages/marketing/PrivacyPage";
 import TermsPage from "../pages/marketing/TermsPage";
+import FeaturesPage from "../pages/marketing/FeaturesPage";
+import PricingPage from "../pages/marketing/PricingPage";
+import HowItWorksPage from "../pages/marketing/HowItWorksPage";
 import NotFoundPage from "../pages/NotFoundPage";
 
 function ProtectedRoute({
@@ -66,6 +69,9 @@ export function AppRouter() {
         <Route path="/request-access" element={<RequestAccessPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/provider" element={<ProviderLoginPage />} />
 
         <Route

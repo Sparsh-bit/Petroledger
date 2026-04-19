@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   BarChart3,
   Users,
@@ -6,6 +7,7 @@ import {
   AlertTriangle,
   Activity,
   FileSearch,
+  ArrowRight,
 } from "lucide-react";
 import { fadeUpOnView } from "@/lib/anime-helpers";
 
@@ -83,6 +85,16 @@ export function Features() {
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <Link
+            to="/features"
+            className="inline-flex items-center gap-2 text-sm font-medium text-amber-300 hover:text-amber-200 transition-colors"
+          >
+            See all features
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>
