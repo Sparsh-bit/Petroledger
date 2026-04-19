@@ -12,10 +12,10 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm focus-visible:ring-2 ring-indigo-300",
+      "bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm shadow-indigo-200",
     secondary:
       "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200",
     ghost: "text-slate-600 hover:bg-slate-100",
@@ -37,7 +37,7 @@ export function Input({ label, error, mono, className, id, ...props }: InputProp
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-xs font-medium uppercase tracking-wide text-slate-600"
+          className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500"
         >
           {label}
         </label>
@@ -45,8 +45,8 @@ export function Input({ label, error, mono, className, id, ...props }: InputProp
       <input
         id={inputId}
         className={cx(
-          "w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-400",
-          error ? "border-red-500" : "border-slate-300",
+          "w-full h-10 rounded-xl border bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10",
+          error ? "border-red-500" : "border-slate-200",
           mono && "font-mono tracking-wider uppercase",
           className,
         )}
@@ -70,7 +70,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm",
+        "rounded-xl border border-slate-100 bg-white p-5 shadow-sm",
         className,
       )}
       {...props}

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ArrowLeft,
@@ -9,9 +9,11 @@ import {
   Building2,
   CreditCard,
   AlertOctagon,
+  Trash2,
 } from "lucide-react";
 import { Badge, Button, Card, Input } from "../../components/ui";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Spinner } from "../../components/ui/Spinner";
@@ -27,6 +29,7 @@ function errMsg(err: unknown, fallback: string): string {
 
 export default function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [data, setData] = useState<TenantDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,8 +39,10 @@ export default function TenantDetailPage() {
   const [expires, setExpires] = useState("");
   const [price, setPrice] = useState(0);
   const [pendingLock, setPendingLock] = useState(false);
-  const [pendingDeactivate, setPendingDeactivate] = useState(false);
   const [lockBusy, setLockBusy] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     if (!id) return;
@@ -257,14 +262,17 @@ export default function TenantDetailPage() {
           <AlertOctagon className="h-4 w-4" /> Danger zone
         </h3>
         <p className="text-sm text-slate-600 mb-4">
-          Deactivating a tenant is reversible — users stay but lose all access
-          until reactivated.
+          Permanently delete this tenant and every record it owns — users,
+          pumps, shifts, transactions and audit logs. This cannot be undone.
         </p>
         <Button
           variant="danger"
-          onClick={() => setPendingDeactivate(true)}
+          onClick={() => {
+            setDeleteConfirm("");
+            setShowDelete(true);
+          }}
         >
-          Deactivate tenant
+          <Trash2 className="h-4 w-4" /> Delete tenant permanently
         </Button>
       </Card>
 
@@ -283,25 +291,58 @@ export default function TenantDetailPage() {
         onConfirm={confirmLockToggle}
       />
 
-      <ConfirmDialog
-        open={pendingDeactivate}
-        title="Deactivate tenant?"
-        message="This equivalent-locks the tenant immediately. You can restore it later from this page."
-        destructive
-        confirmLabel="Deactivate"
-        onCancel={() => setPendingDeactivate(false)}
-        onConfirm={async () => {
-          setPendingDeactivate(false);
-          if (!id) return;
-          try {
-            await providerApi.lockTenant(id);
-            toast.success("Tenant deactivated.");
-            void load();
-          } catch (err) {
-            toast.error(errMsg(err, "Failed to deactivate tenant."));
-          }
-        }}
-      />
+      <Modal
+        open={showDelete}
+        onClose={() => (deleting ? undefined : setShowDelete(false))}
+        title="Permanently delete tenant"
+        widthClass="max-w-md"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-slate-700">
+            This removes <span className="font-semibold">{s.name}</span> and
+            every record it owns — users, pumps, shifts, transactions, audit
+            logs — forever. There is no undo.
+          </p>
+          <p className="text-sm text-slate-700">
+            Type the tenant name below to confirm.
+          </p>
+          <Input
+            label={`Type "${s.name}" to confirm`}
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder={s.name}
+            autoFocus
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button
+            variant="secondary"
+            onClick={() => setShowDelete(false)}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            disabled={deleting || deleteConfirm.trim() !== s.name.trim()}
+            onClick={async () => {
+              if (!id) return;
+              setDeleting(true);
+              try {
+                await providerApi.deleteTenant(id, deleteConfirm.trim());
+                toast.success(`Tenant "${s.name}" deleted.`);
+                navigate("/provider/tenants", { replace: true });
+              } catch (err) {
+                toast.error(errMsg(err, "Failed to delete tenant."));
+              } finally {
+                setDeleting(false);
+              }
+            }}
+          >
+            {deleting ? "Deleting…" : "Delete permanently"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Fuel, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { ArrowLeft, Fuel, KeyRound, ShieldCheck } from "lucide-react";
 
 import { Button, Input } from "../../components/ui";
 import { loginRequest } from "../../api/auth";
@@ -31,8 +30,9 @@ export default function LoginPage() {
       navigate(roleHomePath(res.user.role), { replace: true });
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } }; message?: string })
-          ?.response?.data?.message ||
+        (err as { response?: { data?: { detail?: string; message?: string } }; message?: string })
+          ?.response?.data?.detail ||
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         (err as { message?: string })?.message ||
         "Login failed. Please check your credentials.";
       setError(msg);
@@ -42,36 +42,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-ink-950 text-ink-100">
-      {/* LEFT — Form */}
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-slate-50">
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-ink-200 mb-10"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-10"
           >
             <ArrowLeft className="h-4 w-4" /> Back to home
           </Link>
 
-          <div className="flex items-center gap-2 font-bold text-lg">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/20 text-brand-300">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm">
               <Fuel className="h-4 w-4" />
             </span>
-            Petro<span className="text-brand-400">Ledger</span>
+            <div className="font-bold text-lg text-slate-900">
+              Petro<span className="text-indigo-600">Ledger</span>
+            </div>
           </div>
-          <h1 className="mt-8 text-3xl font-bold tracking-tight">
+          <h1 className="mt-8 text-2xl font-bold tracking-tight text-slate-900">
             Welcome back
           </h1>
-          <p className="mt-2 text-sm text-ink-400">
-            Sign in with your pump code and credentials. Provider staff can
-            leave the pump code blank.
+          <p className="mt-1 text-sm text-slate-500">
+            Enter your pump code, email, and password to sign in.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
             <Input
               label="Pump Code"
               name="pump_code"
-              placeholder="e.g. MUM-BAN-042"
+              placeholder="MUM-BAN-042"
               autoComplete="off"
               value={pumpCode}
               onChange={(e) => setPumpCode(e.target.value.toUpperCase())}
@@ -101,25 +101,28 @@ export default function LoginPage() {
             {error && (
               <div
                 role="alert"
-                className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+                className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
               >
                 {error}
               </div>
             )}
 
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Signing in…" : "Sign In"}
+              {loading ? "Signing in…" : "Sign in"}
             </Button>
 
-            <div className="flex justify-between text-xs text-ink-400">
-              <Link to="/forgot-password" className="hover:text-ink-200">
+            <div className="flex justify-between text-xs text-slate-500">
+              <Link to="/forgot-password" className="hover:text-slate-900">
                 Forgot password?
               </Link>
-              <span>Need help? support@petroledger.in</span>
+              <span>support@petroledger.in</span>
             </div>
-            <div className="pt-4 border-t border-ink-900 text-center text-xs text-ink-500">
+            <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
               Platform operator?{" "}
-              <Link to="/provider" className="text-brand-300 hover:text-brand-200">
+              <Link
+                to="/provider"
+                className="font-semibold text-indigo-600 hover:text-indigo-500"
+              >
                 Sign in here →
               </Link>
             </div>
@@ -127,60 +130,47 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* RIGHT — Brand panel */}
-      <div className="relative hidden lg:block overflow-hidden border-l border-ink-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/30 via-emerald-500/10 to-sky-500/20" />
-        <div className="absolute inset-0 grid-bg opacity-30" />
-        <div className="relative h-full flex flex-col justify-between p-12">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-ink-950/50 px-3 py-1 text-xs text-brand-200">
-              <Sparkles className="h-3 w-3" /> Trusted by 500+ pumps
+      <div className="relative hidden lg:block border-l border-slate-100 bg-white">
+        <div className="h-full flex flex-col justify-between p-12">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+              <ShieldCheck className="h-3 w-3" /> Trusted by 500+ pumps
             </div>
-            <h2 className="mt-6 text-4xl font-bold leading-tight">
-              Close your day <br />
-              <span className="text-brand-300">before the day closes you.</span>
+            <h2 className="mt-8 text-3xl font-bold leading-tight text-slate-900">
+              Close your day before <br />
+              <span className="text-indigo-600">the day closes you.</span>
             </h2>
-            <p className="mt-4 text-ink-300 max-w-md">
+            <p className="mt-3 text-sm text-slate-500 max-w-md">
               Reconcile, audit, and report — all from one cockpit, built for
               Indian forecourts.
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid gap-3">
             {[
+              {
+                icon: KeyRound,
+                title: "Pump-code sign-in",
+                text: "Every login scoped to a specific pump — no cross-tenant leakage.",
+              },
               {
                 icon: ShieldCheck,
                 title: "Bank-grade security",
                 text: "Every action hashed and signed.",
               },
-              {
-                icon: Zap,
-                title: "Built for mobile",
-                text: "Workers in the field, not at a desk.",
-              },
-              {
-                icon: Sparkles,
-                title: "Insights that pay for themselves",
-                text: "Catch shrinkage before the week ends.",
-              },
-            ].map((c, i) => (
-              <motion.div
+            ].map((c) => (
+              <div
                 key={c.title}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.08 }}
-                className="flex gap-3 rounded-xl border border-ink-800/80 bg-ink-950/40 backdrop-blur-sm p-4"
+                className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4"
               >
-                <c.icon className="h-5 w-5 text-brand-300 shrink-0 mt-0.5" />
+                <c.icon className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-semibold text-sm">{c.title}</div>
-                  <div className="text-xs text-ink-400">{c.text}</div>
+                  <div className="font-semibold text-sm text-slate-900">
+                    {c.title}
+                  </div>
+                  <div className="text-xs text-slate-500">{c.text}</div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

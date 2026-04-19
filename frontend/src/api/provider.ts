@@ -105,16 +105,35 @@ export const providerApi = {
       .get<TenantDetail>(`/provider/organizations/${id}`)
       .then((r) => r.data),
 
-  /** Tenant creation currently happens via access-request approval; expose
-   *  the shape for forward-compat. Stage 2 may wire a direct endpoint. */
+  /** Create a tenant + owner user + first organization + first pump in one call.
+   *  The returned tenant's pump_code is the login key its staff will type
+   *  alongside their email + password. */
   createTenant: (payload: {
-    name: string;
+    tenant_name: string;
+    owner_name: string;
     owner_email: string;
     owner_phone: string;
     password: string;
+    pump_code: string;
+    org_name?: string;
+    pump_name?: string;
+    subscription_plan?: "BASIC" | "PRO" | "ENTERPRISE";
+    monthly_price_inr?: number;
   }): Promise<TenantSummary> =>
     api
       .post<TenantSummary>("/provider/organizations", payload)
+      .then((r) => r.data),
+
+  /** Permanently delete a tenant and every record it owns. The caller
+   *  must echo the tenant's name in confirm_name — there is no undo. */
+  deleteTenant: (
+    id: string,
+    confirm_name: string,
+  ): Promise<{ message: string }> =>
+    api
+      .delete<{ message: string }>(`/provider/organizations/${id}`, {
+        data: { confirm_name },
+      })
       .then((r) => r.data),
 
   updateTenant: (

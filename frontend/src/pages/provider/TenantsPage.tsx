@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Building2, Lock, LockOpen, Search } from "lucide-react";
-import { Badge, Button, Card, Input } from "../../components/ui";
+import { Building2, Lock, LockOpen, Plus, Search } from "lucide-react";
+import { Badge, Button, Input } from "../../components/ui";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { DataTable } from "../../components/ui/DataTable";
@@ -18,6 +19,30 @@ function fmtMoney(v: number): string {
   return `₹${v.toLocaleString("en-IN")}`;
 }
 
+interface CreateForm {
+  tenant_name: string;
+  owner_name: string;
+  owner_email: string;
+  owner_phone: string;
+  password: string;
+  pump_code: string;
+  pump_name: string;
+  subscription_plan: "BASIC" | "PRO" | "ENTERPRISE";
+  monthly_price_inr: string;
+}
+
+const EMPTY_CREATE_FORM: CreateForm = {
+  tenant_name: "",
+  owner_name: "",
+  owner_email: "",
+  owner_phone: "",
+  password: "",
+  pump_code: "",
+  pump_name: "",
+  subscription_plan: "BASIC",
+  monthly_price_inr: "0",
+};
+
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<TenantSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +51,9 @@ export default function TenantsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [pendingLock, setPendingLock] = useState<TenantSummary | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState<CreateForm>(EMPTY_CREATE_FORM);
+  const [creating, setCreating] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -57,6 +85,33 @@ export default function TenantsPage() {
     });
   }, [tenants, q, plan, statusFilter]);
 
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault();
+    if (creating) return;
+    setCreating(true);
+    try {
+      await providerApi.createTenant({
+        tenant_name: createForm.tenant_name.trim(),
+        owner_name: createForm.owner_name.trim(),
+        owner_email: createForm.owner_email.trim().toLowerCase(),
+        owner_phone: createForm.owner_phone.trim(),
+        password: createForm.password,
+        pump_code: createForm.pump_code.trim().toUpperCase(),
+        pump_name: createForm.pump_name.trim() || undefined,
+        subscription_plan: createForm.subscription_plan,
+        monthly_price_inr: Number(createForm.monthly_price_inr) || 0,
+      });
+      toast.success("Tenant created.");
+      setShowCreate(false);
+      setCreateForm(EMPTY_CREATE_FORM);
+      void load();
+    } catch (err) {
+      toast.error(errMsg(err, "Failed to create tenant."));
+    } finally {
+      setCreating(false);
+    }
+  }
+
   async function confirmLock() {
     if (!pendingLock) return;
     setBusy(true);
@@ -82,6 +137,11 @@ export default function TenantsPage() {
       <PageHeader
         title="Tenants"
         description="Manage every dealer tenant on the platform."
+        actions={
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" /> Create tenant
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -205,6 +265,131 @@ export default function TenantsPage() {
           },
         ]}
       />
+
+      <Modal
+        open={showCreate}
+        onClose={() => (creating ? undefined : setShowCreate(false))}
+        title="Create a new tenant"
+        widthClass="max-w-xl"
+      >
+        <form
+          id="create-tenant-form"
+          onSubmit={handleCreate}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+        >
+          <Input
+            label="Tenant / Dealer name"
+            required
+            value={createForm.tenant_name}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, tenant_name: e.target.value }))
+            }
+            className="sm:col-span-2"
+            placeholder="e.g. Sharma Fuels Pvt Ltd"
+          />
+          <Input
+            label="Pump code"
+            required
+            mono
+            value={createForm.pump_code}
+            onChange={(e) =>
+              setCreateForm((f) => ({
+                ...f,
+                pump_code: e.target.value.toUpperCase(),
+              }))
+            }
+            placeholder="MUM-BAN-042"
+          />
+          <Input
+            label="Pump name"
+            value={createForm.pump_name}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, pump_name: e.target.value }))
+            }
+            placeholder="Main Pump (optional)"
+          />
+          <Input
+            label="Owner name"
+            required
+            value={createForm.owner_name}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, owner_name: e.target.value }))
+            }
+          />
+          <Input
+            label="Owner phone"
+            required
+            value={createForm.owner_phone}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, owner_phone: e.target.value }))
+            }
+            placeholder="+91…"
+          />
+          <Input
+            label="Owner email"
+            type="email"
+            required
+            value={createForm.owner_email}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, owner_email: e.target.value }))
+            }
+          />
+          <Input
+            label="Owner password"
+            type="password"
+            required
+            minLength={8}
+            value={createForm.password}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, password: e.target.value }))
+            }
+            placeholder="At least 8 characters"
+          />
+          <Select
+            label="Plan"
+            value={createForm.subscription_plan}
+            onChange={(e) =>
+              setCreateForm((f) => ({
+                ...f,
+                subscription_plan: e.target.value as CreateForm["subscription_plan"],
+              }))
+            }
+            options={[
+              { value: "BASIC", label: "BASIC (1 org)" },
+              { value: "PRO", label: "PRO (5 orgs)" },
+              { value: "ENTERPRISE", label: "ENTERPRISE" },
+            ]}
+          />
+          <Input
+            label="Monthly price (₹)"
+            type="number"
+            min={0}
+            value={createForm.monthly_price_inr}
+            onChange={(e) =>
+              setCreateForm((f) => ({
+                ...f,
+                monthly_price_inr: e.target.value,
+              }))
+            }
+          />
+        </form>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button
+            variant="secondary"
+            onClick={() => setShowCreate(false)}
+            disabled={creating}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="create-tenant-form"
+            disabled={creating}
+          >
+            {creating ? "Creating…" : "Create tenant"}
+          </Button>
+        </div>
+      </Modal>
 
       <ConfirmDialog
         open={!!pendingLock}
