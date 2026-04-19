@@ -257,23 +257,30 @@ async def _unique_slug(db: AsyncSession, base: str) -> str:
         n += 1
 
 
-@router.post(
-    "/organizations",
-    response_model=OrganizationSummary,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_organization(
-    payload: TenantCreateRequest,
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_superadmin),
-) -> OrganizationSummary:
-    """Create a tenant, its owner user, first organization and first pump.
+async def provision_tenant_workspace(
+    db: AsyncSession,
+    *,
+    tenant_name: str,
+    owner_name: str,
+    owner_email: str,
+    owner_phone: str,
+    password: str,
+    pump_code: str | None = None,
+    org_name: str | None = None,
+    pump_name: str | None = None,
+    subscription_plan: str = "BASIC",
+    monthly_price_inr: int = 0,
+) -> tuple[Tenant, str]:
+    """Shared provisioning path — used by both the direct provider-portal
+    "Create Tenant" flow and the access-request approval flow.
 
-    All four rows are created in one transaction. The pump_code is
-    normalised to upper-case and must be unique platform-wide — it becomes
-    the login key every tenant user types alongside their email+password.
+    Creates tenant + owner user + first organization + first pump in one
+    transaction and returns ``(tenant, pump_code)``. The pump code is the
+    per-tenant login key that every user types alongside email+password.
+    Sends a welcome email with the credentials; email failure is logged
+    and swallowed (never rolls back the workspace).
     """
-    email = payload.owner_email.lower().strip()
+    email = owner_email.lower().strip()
 
     # Uniqueness checks — email (users + tenants).
     if (await db.execute(select(User).where(User.email == email))).scalar_one_or_none() is not None:
@@ -283,34 +290,33 @@ async def create_organization(
     ).scalar_one_or_none() is not None:
         raise HTTPException(status_code=409, detail=f"A tenant with email '{email}' already exists.")
 
-    # Pump code: respect caller-supplied value if given, otherwise auto-generate.
-    if payload.pump_code and payload.pump_code.strip():
-        pump_code = payload.pump_code.strip().upper()
+    if pump_code and pump_code.strip():
+        final_code = pump_code.strip().upper()
         if (
-            await db.execute(select(Pump).where(Pump.code == pump_code))
+            await db.execute(select(Pump).where(Pump.code == final_code))
         ).scalar_one_or_none() is not None:
             raise HTTPException(
-                status_code=409, detail=f"Pump code '{pump_code}' is already in use."
+                status_code=409, detail=f"Pump code '{final_code}' is already in use."
             )
     else:
-        pump_code = await _generate_unique_pump_code(db)
+        final_code = await _generate_unique_pump_code(db)
 
     tenant = Tenant(
-        name=payload.tenant_name,
-        owner_name=payload.owner_name,
-        owner_phone=payload.owner_phone,
+        name=tenant_name,
+        owner_name=owner_name,
+        owner_phone=owner_phone,
         owner_email=email,
-        subscription_plan=payload.subscription_plan,
-        max_orgs=999 if payload.subscription_plan == "ENTERPRISE" else (5 if payload.subscription_plan == "PRO" else 1),
-        monthly_price_inr=payload.monthly_price_inr,
+        subscription_plan=subscription_plan,
+        max_orgs=999 if subscription_plan == "ENTERPRISE" else (5 if subscription_plan == "PRO" else 1),
+        monthly_price_inr=monthly_price_inr,
         is_active=True,
     )
     db.add(tenant)
     await db.flush()
 
-    slug = await _unique_slug(db, _slugify(payload.org_name or payload.tenant_name))
+    slug = await _unique_slug(db, _slugify(org_name or tenant_name))
     org = Organization(
-        name=payload.org_name or payload.tenant_name,
+        name=org_name or tenant_name,
         slug=slug,
         contact_email=email,
         tenant_id=tenant.id,
@@ -321,8 +327,8 @@ async def create_organization(
 
     pump = Pump(
         org_id=org.id,
-        name=payload.pump_name or f"{payload.tenant_name} Pump",
-        code=pump_code,
+        name=pump_name or f"{tenant_name} Pump",
+        code=final_code,
         nozzle_count=0,
         is_active=True,
     )
@@ -330,8 +336,8 @@ async def create_organization(
 
     owner = User(
         email=email,
-        phone=payload.owner_phone,
-        hashed_password=hash_password(payload.password),
+        phone=owner_phone,
+        hashed_password=hash_password(password),
         role=UserRole.OWNER,
         tenant_id=tenant.id,
         org_id=None,
@@ -342,18 +348,16 @@ async def create_organization(
     await db.commit()
     await db.refresh(tenant)
 
-    # Fire-and-forget welcome email with credentials. Email failures must
-    # never rollback the tenant creation — they're logged and swallowed.
     try:
         await send_email(
             to=email,
-            subject=f"Your PetroLedger workspace is ready — pump code {pump_code}",
+            subject=f"Your PetroLedger workspace is ready — pump code {final_code}",
             html_body=_welcome_email_html(
-                tenant_name=payload.tenant_name,
-                owner_name=payload.owner_name,
+                tenant_name=tenant_name,
+                owner_name=owner_name,
                 owner_email=email,
-                pump_code=pump_code,
-                password=payload.password,
+                pump_code=final_code,
+                password=password,
             ),
         )
     except Exception:
@@ -361,6 +365,38 @@ async def create_organization(
             "Welcome email failed for tenant=%s email=%s", tenant.id, email
         )
 
+    return tenant, final_code
+
+
+@router.post(
+    "/organizations",
+    response_model=OrganizationSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_organization(
+    payload: TenantCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> OrganizationSummary:
+    """Create a tenant + owner + first org + first pump in one transaction.
+
+    Thin wrapper around ``provision_tenant_workspace`` — same helper is
+    re-used by the access-request approval flow so we have one canonical
+    provisioning path across the app.
+    """
+    tenant, _code = await provision_tenant_workspace(
+        db,
+        tenant_name=payload.tenant_name,
+        owner_name=payload.owner_name,
+        owner_email=payload.owner_email,
+        owner_phone=payload.owner_phone,
+        password=payload.password,
+        pump_code=payload.pump_code,
+        org_name=payload.org_name,
+        pump_name=payload.pump_name,
+        subscription_plan=payload.subscription_plan,
+        monthly_price_inr=payload.monthly_price_inr,
+    )
     return await _summarize_tenant(db, tenant)
 
 

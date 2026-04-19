@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from app.core.exceptions import TenantForbiddenError
-from app.core.tenant import check_org_limit, get_tenant_org_count
+from app.core.tenant import (
+    TenantForbiddenError,
+    check_org_limit,
+    get_tenant_org_count,
+)
 from tests.fixtures.factories import OrganizationFactory
 
 
