@@ -7,7 +7,8 @@ import { Modal } from "../../components/ui/Modal";
 import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Pump } from "../../api/admin";
-import { useOrgStore } from "../../store/org";
+import { api } from "../../api/client";
+import { useOrgStore, OrgSummary } from "../../store/org";
 
 function errMsg(err: unknown, fallback: string): string {
   const e = err as { response?: { data?: { detail?: string } }; message?: string };
@@ -16,7 +17,7 @@ function errMsg(err: unknown, fallback: string): string {
 
 export default function PumpsPage() {
   const navigate = useNavigate();
-  const { selectedOrgId } = useOrgStore();
+  const { orgs, selectedOrgId, setOrgs } = useOrgStore();
   const [pumps, setPumps] = useState<Pump[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -24,6 +25,24 @@ export default function PumpsPage() {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const pageSize = 25;
+
+  // Owners created via the provider portal land here with zero orgs cached
+  // in the store (the header OrgSelector only fetches on its first mount,
+  // which may race with an immediate page visit). Guarantee the list is
+  // populated so the "Add pump" modal has a valid org_id to submit with.
+  useEffect(() => {
+    if (orgs.length > 0) return;
+    void (async () => {
+      try {
+        const res = await api.get<{ items: OrgSummary[] }>(
+          "/organizations/?page=1&page_size=50",
+        );
+        setOrgs(res.data?.items ?? []);
+      } catch {
+        /* non-blocking */
+      }
+    })();
+  }, [orgs.length, setOrgs]);
 
   async function load() {
     setLoading(true);
@@ -34,7 +53,7 @@ export default function PumpsPage() {
         page_size: pageSize,
       });
       setPumps(res?.items ?? []);
-      setTotal(res.total);
+      setTotal(res?.total ?? 0);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load pumps."));
     } finally {
@@ -173,14 +192,27 @@ function CreatePumpModal({
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!orgId) {
-      toast.error("Pick an organisation in the top bar first.");
-      return;
-    }
     setBusy(true);
     try {
+      let effectiveOrgId = orgId;
+      if (!effectiveOrgId) {
+        // Fallback — pull the first visible org if the store hasn't been
+        // hydrated yet (fresh login, OrgSelector still racing).
+        try {
+          const res = await api.get<{ items: OrgSummary[] }>(
+            "/organizations/?page=1&page_size=1",
+          );
+          effectiveOrgId = res.data?.items?.[0]?.id ?? null;
+        } catch {
+          /* handled below */
+        }
+      }
+      if (!effectiveOrgId) {
+        toast.error("No organization available. Ask your provider to provision one.");
+        return;
+      }
       await adminApi.createPump({
-        org_id: orgId,
+        org_id: effectiveOrgId,
         name: name.trim(),
         location: location.trim() || undefined,
         nozzle_count: nozzleCount,
@@ -209,7 +241,7 @@ function CreatePumpModal({
           </Button>
           <Button
             onClick={(e) => void onSubmit(e as unknown as FormEvent)}
-            disabled={busy || !name.trim() || !orgId}
+            disabled={busy || !name.trim()}
           >
             {busy ? "Creating…" : "Create"}
           </Button>

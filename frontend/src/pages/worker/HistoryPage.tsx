@@ -29,7 +29,7 @@ export default function HistoryPage() {
         const res = await adminApi.getShifts({ page, page_size: pageSize });
         if (!cancel) {
           setShifts(res?.items ?? []);
-          setTotal(res.total);
+          setTotal(res?.total ?? 0);
         }
       } catch (err) {
         if (!cancel) toast.error(errMsg(err, "Failed to load history."));

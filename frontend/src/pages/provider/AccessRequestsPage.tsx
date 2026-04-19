@@ -59,7 +59,7 @@ export default function AccessRequestsPage() {
       .then((res) => {
         if (cancel) return;
         setItems(res?.items ?? []);
-        setTotal(res.total);
+        setTotal(res?.total ?? 0);
         setError(null);
       })
       .catch((e) => !cancel && setError(e?.message ?? "Failed to load"))
