@@ -22,13 +22,14 @@ from app.api.deps.auth import get_current_active_user
 from app.core.email import send_email
 from app.core.security import hash_password
 from app.core.tenant_lock_cache import invalidate_tenant_lock
-
-logger = logging.getLogger(__name__)
 from app.db.session import get_db
+from app.models.feature import TenantFeature, TenantFeatureOverride, TenantPaymentConfig
 from app.models.organization import Organization
 from app.models.pump import Pump
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -80,7 +81,7 @@ class TenantCreateRequest(BaseModel):
     tenant_name: str = Field(..., min_length=2, max_length=255)
     owner_name: str = Field(..., min_length=2, max_length=255)
     owner_email: EmailStr
-    owner_phone: str = Field(..., min_length=6, max_length=20)
+    owner_phone: str = Field(default="", max_length=20)
     password: str = Field(..., min_length=8, max_length=64)
     pump_code: str | None = Field(default=None, max_length=32)
     org_name: str | None = Field(default=None, max_length=255)
@@ -511,10 +512,10 @@ async def delete_organization(
         raise HTTPException(status_code=404, detail="Tenant not found")
 
     expected = tenant.name.strip()
-    if payload.confirm_name.strip() != expected:
+    if payload.confirm_name.strip().casefold() != expected.casefold():
         raise HTTPException(
             status_code=400,
-            detail=f"Confirmation mismatch. Type the exact tenant name: '{expected}'.",
+            detail=f"Confirmation mismatch. Type the tenant name: '{expected}'.",
         )
 
     removed_name = tenant.name
@@ -707,4 +708,326 @@ async def provider_stats(
         active_orgs=int(active),
         locked_orgs=int(locked),
         mrr_inr=int(mrr),
+    )
+
+
+# ── Features ─────────────────────────────────────────────────────────────
+
+
+class FeatureItem(BaseModel):
+    id: int
+    key: str
+    name: str
+    module: str
+    is_core: bool
+    plan_enabled: bool
+    override_enabled: bool | None
+    effective: bool
+    source: str  # "core" | "plan" | "override" | "none"
+
+
+class FeatureOverridePayload(BaseModel):
+    enabled: bool
+    reason: str | None = None
+
+
+async def _get_tenant_or_404(tenant_id: uuid.UUID, db: AsyncSession) -> Tenant:
+    t = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
+    if t is None:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return t
+
+
+@router.get("/organizations/{tenant_id}/features", response_model=list[FeatureItem])
+async def list_tenant_features(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> list[FeatureItem]:
+    """Return all features annotated with plan-default and per-tenant override state."""
+    tenant = await _get_tenant_or_404(tenant_id, db)
+    features = (await db.execute(select(TenantFeature).order_by(TenantFeature.id))).scalars().all()
+    overrides_rows = (
+        await db.execute(
+            select(TenantFeatureOverride).where(TenantFeatureOverride.tenant_id == tenant_id)
+        )
+    ).scalars().all()
+    overrides = {o.feature_id: o for o in overrides_rows}
+    plan = tenant.subscription_plan.upper()
+
+    items: list[FeatureItem] = []
+    for f in features:
+        plan_enabled = plan in [p.strip() for p in f.included_in_plans.split(",") if p.strip()]
+        override = overrides.get(f.id)
+        override_enabled = override.is_enabled if override else None
+
+        if f.is_core:
+            effective = True
+            source = "core"
+        elif override is not None:
+            effective = override.is_enabled
+            source = "override"
+        elif plan_enabled:
+            effective = True
+            source = "plan"
+        else:
+            effective = False
+            source = "none"
+
+        items.append(
+            FeatureItem(
+                id=f.id,
+                key=f.key,
+                name=f.name,
+                module=f.module,
+                is_core=f.is_core,
+                plan_enabled=plan_enabled,
+                override_enabled=override_enabled,
+                effective=effective,
+                source=source,
+            )
+        )
+    return items
+
+
+@router.put(
+    "/organizations/{tenant_id}/features/{feature_id}",
+    response_model=FeatureItem,
+)
+async def set_feature_override(
+    tenant_id: uuid.UUID,
+    feature_id: int,
+    payload: FeatureOverridePayload,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> FeatureItem:
+    """Force-enable or force-disable a feature for a specific tenant."""
+    tenant = await _get_tenant_or_404(tenant_id, db)
+    feature = (
+        await db.execute(select(TenantFeature).where(TenantFeature.id == feature_id))
+    ).scalar_one_or_none()
+    if feature is None:
+        raise HTTPException(status_code=404, detail="Feature not found")
+    if feature.is_core:
+        raise HTTPException(status_code=400, detail="Core features cannot be overridden.")
+
+    existing = (
+        await db.execute(
+            select(TenantFeatureOverride).where(
+                TenantFeatureOverride.tenant_id == tenant_id,
+                TenantFeatureOverride.feature_id == feature_id,
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        existing.is_enabled = payload.enabled
+        existing.reason = payload.reason
+    else:
+        db.add(
+            TenantFeatureOverride(
+                tenant_id=tenant_id,
+                feature_id=feature_id,
+                is_enabled=payload.enabled,
+                reason=payload.reason,
+            )
+        )
+    await db.commit()
+
+    # Return updated item
+    plan = tenant.subscription_plan.upper()
+    plan_enabled = plan in [p.strip() for p in feature.included_in_plans.split(",") if p.strip()]
+    return FeatureItem(
+        id=feature.id,
+        key=feature.key,
+        name=feature.name,
+        module=feature.module,
+        is_core=feature.is_core,
+        plan_enabled=plan_enabled,
+        override_enabled=payload.enabled,
+        effective=payload.enabled,
+        source="override",
+    )
+
+
+@router.delete(
+    "/organizations/{tenant_id}/features/{feature_id}",
+    response_model=MessageResponse,
+)
+async def clear_feature_override(
+    tenant_id: uuid.UUID,
+    feature_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> MessageResponse:
+    """Remove a per-tenant override, reverting the feature to its plan default."""
+    await _get_tenant_or_404(tenant_id, db)
+    existing = (
+        await db.execute(
+            select(TenantFeatureOverride).where(
+                TenantFeatureOverride.tenant_id == tenant_id,
+                TenantFeatureOverride.feature_id == feature_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is None:
+        raise HTTPException(status_code=404, detail="No override found for this feature.")
+    await db.delete(existing)
+    await db.commit()
+    return MessageResponse(message="Override cleared — feature reverted to plan default.")
+
+
+# ── Payment Config ────────────────────────────────────────────────────────
+
+
+class PaymentConfigResponse(BaseModel):
+    configured: bool
+    gateway: str
+    key_id_masked: str | None
+    has_webhook_secret: bool
+    is_enabled: bool
+
+
+class PaymentConfigPayload(BaseModel):
+    gateway: str = Field(default="razorpay", pattern="^(razorpay|paytm)$")
+    key_id: str = Field(..., min_length=4, max_length=255)
+    key_secret: str = Field(..., min_length=4, max_length=512)
+    webhook_secret: str | None = Field(default=None, max_length=512)
+
+
+def _mask(value: str | None) -> str | None:
+    if not value:
+        return None
+    if len(value) <= 8:
+        return "****"
+    return value[:4] + "****" + value[-4:]
+
+
+@router.get(
+    "/organizations/{tenant_id}/payment-config",
+    response_model=PaymentConfigResponse,
+)
+async def get_payment_config(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> PaymentConfigResponse:
+    await _get_tenant_or_404(tenant_id, db)
+    cfg = (
+        await db.execute(
+            select(TenantPaymentConfig).where(TenantPaymentConfig.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+    if cfg is None:
+        return PaymentConfigResponse(
+            configured=False,
+            gateway="razorpay",
+            key_id_masked=None,
+            has_webhook_secret=False,
+            is_enabled=False,
+        )
+    return PaymentConfigResponse(
+        configured=True,
+        gateway=cfg.gateway,
+        key_id_masked=_mask(cfg.key_id),
+        has_webhook_secret=bool(cfg.webhook_secret),
+        is_enabled=cfg.is_enabled,
+    )
+
+
+@router.post(
+    "/organizations/{tenant_id}/payment-config",
+    response_model=PaymentConfigResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def save_payment_config(
+    tenant_id: uuid.UUID,
+    payload: PaymentConfigPayload,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> PaymentConfigResponse:
+    """Create or replace the payment gateway config for a tenant."""
+    await _get_tenant_or_404(tenant_id, db)
+    existing = (
+        await db.execute(
+            select(TenantPaymentConfig).where(TenantPaymentConfig.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        existing.gateway = payload.gateway
+        existing.key_id = payload.key_id
+        existing.key_secret = payload.key_secret
+        existing.webhook_secret = payload.webhook_secret
+        existing.is_enabled = True
+    else:
+        db.add(
+            TenantPaymentConfig(
+                tenant_id=tenant_id,
+                gateway=payload.gateway,
+                key_id=payload.key_id,
+                key_secret=payload.key_secret,
+                webhook_secret=payload.webhook_secret,
+                is_enabled=True,
+            )
+        )
+    await db.commit()
+    return PaymentConfigResponse(
+        configured=True,
+        gateway=payload.gateway,
+        key_id_masked=_mask(payload.key_id),
+        has_webhook_secret=bool(payload.webhook_secret),
+        is_enabled=True,
+    )
+
+
+@router.delete(
+    "/organizations/{tenant_id}/payment-config",
+    response_model=MessageResponse,
+)
+async def delete_payment_config(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> MessageResponse:
+    await _get_tenant_or_404(tenant_id, db)
+    cfg = (
+        await db.execute(
+            select(TenantPaymentConfig).where(TenantPaymentConfig.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+    if cfg is None:
+        raise HTTPException(status_code=404, detail="No payment config found.")
+    await db.delete(cfg)
+    await db.commit()
+    return MessageResponse(message="Payment configuration removed.")
+
+
+@router.put(
+    "/organizations/{tenant_id}/payment-config/toggle",
+    response_model=PaymentConfigResponse,
+)
+async def toggle_payment_config(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+) -> PaymentConfigResponse:
+    """Toggle the payment gateway on or off without removing credentials."""
+    await _get_tenant_or_404(tenant_id, db)
+    cfg = (
+        await db.execute(
+            select(TenantPaymentConfig).where(TenantPaymentConfig.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+    if cfg is None:
+        raise HTTPException(status_code=404, detail="No payment config found. Save one first.")
+    cfg.is_enabled = not cfg.is_enabled
+    await db.commit()
+    await db.refresh(cfg)
+    return PaymentConfigResponse(
+        configured=True,
+        gateway=cfg.gateway,
+        key_id_masked=_mask(cfg.key_id),
+        has_webhook_secret=bool(cfg.webhook_secret),
+        is_enabled=cfg.is_enabled,
     )

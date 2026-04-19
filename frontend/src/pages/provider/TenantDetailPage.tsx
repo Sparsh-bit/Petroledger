@@ -201,35 +201,6 @@ export default function TenantDetailPage() {
 
         <Card className="lg:col-span-2">
           <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <Users className="h-4 w-4 text-indigo-500" /> Users (
-            {data.users.length})
-          </h3>
-          <div className="divide-y divide-slate-100">
-            {data.users.map((u) => (
-              <div
-                key={u.id}
-                className="py-2.5 flex items-center justify-between text-sm"
-              >
-                <div>
-                  <div className="font-medium text-slate-900">{u.email}</div>
-                  <div className="text-xs text-slate-500">
-                    {u.role} · last login{" "}
-                    {u.last_login
-                      ? new Date(u.last_login).toLocaleString()
-                      : "never"}
-                  </div>
-                </div>
-                <Badge tone={u.is_active ? "green" : "slate"}>
-                  {u.is_active ? "active" : "inactive"}
-                </Badge>
-              </div>
-            ))}
-            {data.users.length === 0 && (
-              <div className="py-3 text-sm text-slate-500">No users.</div>
-            )}
-          </div>
-
-          <h3 className="font-semibold text-slate-900 mt-6 mb-4 flex items-center gap-2">
             <Building2 className="h-4 w-4 text-indigo-500" /> Pumps (
             {data.pumps.length})
           </h3>
@@ -304,10 +275,11 @@ export default function TenantDetailPage() {
             logs — forever. There is no undo.
           </p>
           <p className="text-sm text-slate-700">
-            Type the tenant name below to confirm.
+            Type <span className="font-mono font-semibold">{s.name}</span>{" "}
+            below to confirm (case does not matter).
           </p>
           <Input
-            label={`Type "${s.name}" to confirm`}
+            label={`Type the tenant name`}
             value={deleteConfirm}
             onChange={(e) => setDeleteConfirm(e.target.value)}
             placeholder={s.name}
@@ -324,7 +296,11 @@ export default function TenantDetailPage() {
           </Button>
           <Button
             variant="danger"
-            disabled={deleting || deleteConfirm.trim() !== s.name.trim()}
+            disabled={
+              deleting ||
+              deleteConfirm.trim().toLowerCase() !==
+                s.name.trim().toLowerCase()
+            }
             onClick={async () => {
               if (!id) return;
               setDeleting(true);

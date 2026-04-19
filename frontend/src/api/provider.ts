@@ -96,6 +96,26 @@ export interface ProviderSettings {
   smtp_configured?: boolean;
 }
 
+export interface TenantFeatureItem {
+  id: number;
+  key: string;
+  name: string;
+  module: string;
+  is_core: boolean;
+  plan_enabled: boolean;
+  override_enabled: boolean | null;
+  effective: boolean;
+  source: "core" | "plan" | "override" | "none";
+}
+
+export interface PaymentConfigResponse {
+  configured: boolean;
+  gateway: string;
+  key_id_masked: string | null;
+  has_webhook_secret: boolean;
+  is_enabled: boolean;
+}
+
 export const providerApi = {
   // ── Tenants (listing / detail) ────────────────────────────────────
   getTenants: (): Promise<TenantSummary[]> =>

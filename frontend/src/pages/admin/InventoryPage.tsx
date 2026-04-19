@@ -7,7 +7,7 @@ import { Select } from "../../components/ui/Select";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Spinner } from "../../components/ui/Spinner";
 import { adminApi, Tank } from "../../api/admin";
-import { useOrgStore } from "../../store/org";
+import { useOrgStore, useEnsureOrgs } from "../../store/org";
 
 function errMsg(err: unknown, fallback: string): string {
   const e = err as { response?: { data?: { detail?: string } }; message?: string };
@@ -22,6 +22,7 @@ function levelTone(pct: number): "green" | "amber" | "red" {
 
 export default function InventoryPage() {
   const { selectedOrgId } = useOrgStore();
+  useEnsureOrgs();
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);

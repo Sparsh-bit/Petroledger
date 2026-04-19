@@ -1,6 +1,27 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { useAuth } from "../store/auth";
 
+/**
+ * Normalise any thrown error into a user-facing string.
+ * Preference: FastAPI `detail` > response body `message` > error `.message`
+ * > caller fallback. Use this everywhere instead of hand-rolling per-file
+ * error extractors so users see specific server messages like
+ * "Invalid pump code" rather than generic "Login failed".
+ */
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  const e = err as {
+    response?: { data?: { detail?: unknown; message?: string } };
+    message?: string;
+  };
+  const detail = e?.response?.data?.detail;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0] as { msg?: string } | undefined;
+    if (first?.msg) return first.msg;
+  }
+  return e?.response?.data?.message || e?.message || fallback;
+}
+
 const BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
   "http://localhost:8000";

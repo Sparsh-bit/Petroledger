@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Fuel } from "lucide-react";
 import { Button, Input } from "../../components/ui";
-import { api } from "../../api/client";
+import { api, apiErrorMessage } from "../../api/client";
 
 export default function ResetPasswordPage() {
   const [params] = useSearchParams();
@@ -35,12 +35,7 @@ export default function ResetPasswordPage() {
       setDone(true);
       setTimeout(() => navigate("/login", { replace: true }), 1800);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ||
-        (err as { message?: string })?.message ||
-        "Could not reset password.";
-      setError(msg);
+      setError(apiErrorMessage(err, "Could not reset password."));
     } finally {
       setLoading(false);
     }

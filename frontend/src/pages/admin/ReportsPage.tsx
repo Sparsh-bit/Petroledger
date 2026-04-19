@@ -5,9 +5,8 @@ import { Button, Card, Input } from "../../components/ui";
 import { Select } from "../../components/ui/Select";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Shift } from "../../api/admin";
-import { api } from "../../api/client";
 import { reportsApi } from "../../api/reports";
-import { useOrgStore, OrgSummary } from "../../store/org";
+import { useOrgStore, useEnsureOrgs } from "../../store/org";
 
 type Tab = "shift" | "daily";
 
@@ -17,24 +16,8 @@ function errMsg(err: unknown, fallback: string): string {
 }
 
 export default function ReportsPage() {
-  const { selectedOrgId, orgs, setOrgs } = useOrgStore();
-
-  // Same race as PumpsPage: hydrate the store ourselves so fresh logins
-  // see their org list without depending on the header's OrgSelector
-  // being mounted first.
-  useEffect(() => {
-    if (orgs.length > 0) return;
-    void (async () => {
-      try {
-        const res = await api.get<{ items: OrgSummary[] }>(
-          "/organizations/?page=1&page_size=50",
-        );
-        setOrgs(res.data?.items ?? []);
-      } catch {
-        /* non-fatal */
-      }
-    })();
-  }, [orgs.length, setOrgs]);
+  const { selectedOrgId, orgs } = useOrgStore();
+  useEnsureOrgs();
   const [tab, setTab] = useState<Tab>("shift");
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [shiftId, setShiftId] = useState("");

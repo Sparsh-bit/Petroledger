@@ -4,6 +4,7 @@ import { ArrowLeft, Activity, Layers, Shield, ShieldCheck } from "lucide-react";
 
 import { Button, Input } from "../../components/ui";
 import { loginRequest } from "../../api/auth";
+import { apiErrorMessage } from "../../api/client";
 import { useAuth } from "../../store/auth";
 
 export default function ProviderLoginPage() {
@@ -39,13 +40,9 @@ export default function ProviderLoginPage() {
       setUser(res.user);
       navigate("/provider/dashboard", { replace: true });
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string; message?: string } }; message?: string })
-          ?.response?.data?.detail ||
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        (err as { message?: string })?.message ||
-        "Login failed. Please check your credentials.";
-      setError(msg);
+      setError(
+        apiErrorMessage(err, "Login failed. Please check your credentials."),
+      );
     } finally {
       setLoading(false);
     }
