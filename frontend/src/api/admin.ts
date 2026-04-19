@@ -36,7 +36,9 @@ export interface Pump {
 }
 
 export interface PumpCreatePayload {
-  org_id: string;
+  // Optional — backend resolves to the caller's tenant's first org
+  // (auto-creating a default one if none exists) when omitted.
+  org_id?: string;
   name: string;
   location?: string;
   nozzle_count: number;

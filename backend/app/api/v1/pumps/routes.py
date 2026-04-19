@@ -74,14 +74,54 @@ async def create_pump(
             )
         ).scalar_one_or_none()
         if first_org is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "No organization found for your tenant. Contact your "
-                    "provider to provision one."
-                ),
+            # Self-heal: legacy tenants or those whose workspace was never
+            # fully provisioned may own zero organizations. Rather than
+            # blocking the owner forever, mint a default org here using
+            # the tenant's own name/email — this is idempotent (owner
+            # can rename it later from Settings).
+            from app.models.tenant import Tenant
+            import re as _re
+
+            tenant = (
+                await db.execute(
+                    select(Tenant).where(Tenant.id == current_user.tenant_id)
+                )
+            ).scalar_one_or_none()
+            if tenant is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Your account is not attached to a tenant. "
+                        "Contact your provider."
+                    ),
+                )
+            slug_base = _re.sub(
+                r"[^a-z0-9]+", "-", tenant.name.strip().lower()
+            ).strip("-") or f"tenant-{str(tenant.id)[:8]}"
+            slug = slug_base
+            n = 2
+            while True:
+                collision = (
+                    await db.execute(
+                        select(Organization.id).where(Organization.slug == slug)
+                    )
+                ).scalar_one_or_none()
+                if collision is None:
+                    break
+                slug = f"{slug_base}-{n}"
+                n += 1
+            new_org = Organization(
+                name=tenant.name,
+                slug=slug,
+                contact_email=tenant.owner_email,
+                tenant_id=tenant.id,
+                is_active=True,
             )
-        target_org_id = first_org.id
+            db.add(new_org)
+            await db.flush()
+            target_org_id = new_org.id
+        else:
+            target_org_id = first_org.id
 
     pump = Pump(
         org_id=target_org_id,
