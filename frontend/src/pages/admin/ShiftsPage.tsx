@@ -75,8 +75,8 @@ export default function ShiftsPage() {
             page_size: 200,
           }),
         ]);
-        setPumps(p.items);
-        setWorkers(w.items);
+        setPumps(Array.isArray(p) ? p : p?.items ?? []);
+        setWorkers(Array.isArray(w) ? w : w?.items ?? []);
       } catch {
         /* best effort */
       }

@@ -86,8 +86,8 @@ export default function ManagerDashboardPage() {
         shiftsApi.list({ page: 1, page_size: 10 }),
         shiftsApi.getCashEntries({ page: 1 }),
       ]);
-      setShifts(s.items);
-      const list = Array.isArray(c) ? c : c.items ?? [];
+      setShifts(Array.isArray(s) ? s : s?.items ?? []);
+      const list = Array.isArray(c) ? c : c?.items ?? [];
       setCash(list.slice(0, 10));
     } catch (err) {
       toast.error(errMsg(err, "Failed to load dashboard."));

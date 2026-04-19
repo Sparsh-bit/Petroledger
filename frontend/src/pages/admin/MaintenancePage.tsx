@@ -47,8 +47,8 @@ export default function MaintenancePage() {
           page_size: 100,
         }),
       ]);
-      setDowntimes(dt.items);
-      setPumps(p.items);
+      setDowntimes(Array.isArray(dt) ? dt : dt?.items ?? []);
+      setPumps(Array.isArray(p) ? p : p?.items ?? []);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load maintenance."));
     } finally {

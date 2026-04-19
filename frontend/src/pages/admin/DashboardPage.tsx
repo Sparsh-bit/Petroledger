@@ -67,10 +67,11 @@ export default function AdminDashboardPage() {
           adminApi.getVarianceTrend(selectedOrgId, 30).catch(() => []),
         ]);
         if (cancel) return;
-        setShifts(shiftsRes.items);
-        setShiftsTotal(shiftsRes.total);
-        setFlags(anomaliesRes.items.slice(0, 5));
-        const total = varianceRes.reduce(
+        setShifts(shiftsRes?.items ?? []);
+        setShiftsTotal(shiftsRes?.total ?? 0);
+        setFlags((anomaliesRes?.items ?? []).slice(0, 5));
+        const variances = Array.isArray(varianceRes) ? varianceRes : [];
+        const total = variances.reduce(
           (acc, r) => acc + Number(r.total_variance ?? 0),
           0,
         );
