@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,12 +52,39 @@ async def create_pump(
     current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
 ) -> PumpResponse:
     """Owner/admin can create pumps within their tenant's organizations."""
-    # Verify the target org belongs to the current user's tenant
-    org = await _get_org_or_404(db, payload.org_id)
-    verify_tenant_match(org.tenant_id, current_user)
+    # Resolve target org. If the caller didn't specify one (or specified an
+    # org outside their tenant), fall back to the first active org in the
+    # current user's tenant — covers freshly-provisioned owners whose
+    # frontend hasn't yet hydrated its org picker.
+    target_org_id = payload.org_id
+    if target_org_id is not None:
+        org = await _get_org_or_404(db, target_org_id)
+        verify_tenant_match(org.tenant_id, current_user)
+    else:
+        first_org = (
+            await db.execute(
+                select(Organization)
+                .where(
+                    Organization.tenant_id == current_user.tenant_id,
+                    Organization.is_deleted == False,  # noqa: E712
+                    Organization.is_active == True,  # noqa: E712
+                )
+                .order_by(Organization.created_at.asc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if first_org is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "No organization found for your tenant. Contact your "
+                    "provider to provision one."
+                ),
+            )
+        target_org_id = first_org.id
 
     pump = Pump(
-        org_id=payload.org_id,
+        org_id=target_org_id,
         name=payload.name,
         location=payload.location,
         nozzle_count=payload.nozzle_count,

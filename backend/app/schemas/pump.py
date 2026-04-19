@@ -32,7 +32,10 @@ class NozzleResponse(BaseModel):
 
 
 class PumpCreate(BaseModel):
-    org_id: UUID
+    # Optional — when omitted the backend assigns the user's tenant's
+    # first organization, so a freshly-provisioned owner can create pumps
+    # without first navigating an org picker.
+    org_id: UUID | None = None
     name: str = Field(..., min_length=1, max_length=255)
     location: str | None = None
     nozzle_count: int = Field(default=0, ge=0)
