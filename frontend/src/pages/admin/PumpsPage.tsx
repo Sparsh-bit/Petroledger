@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Plus, Search, Fuel } from "lucide-react";
+import { Plus, Search, Fuel, Trash2 } from "lucide-react";
 import { Badge, Button, Input } from "../../components/ui";
 import { Modal } from "../../components/ui/Modal";
 import { DataTable, Pagination } from "../../components/ui/DataTable";
@@ -24,7 +24,24 @@ export default function PumpsPage() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const pageSize = 25;
+
+  async function onDeletePump(p: Pump) {
+    if (!window.confirm(`Delete pump "${p.name}"? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(p.id);
+    try {
+      await adminApi.deletePump(p.id);
+      toast.success(`Pump "${p.name}" deleted.`);
+      void load();
+    } catch (err) {
+      toast.error(errMsg(err, "Failed to delete pump."));
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -132,6 +149,24 @@ export default function PumpsPage() {
               p.created_at
                 ? new Date(p.created_at).toLocaleDateString()
                 : "—",
+          },
+          {
+            key: "actions",
+            header: "",
+            render: (p) => (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void onDeletePump(p);
+                }}
+                disabled={deletingId === p.id}
+                title="Delete pump"
+                className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            ),
           },
         ]}
       />

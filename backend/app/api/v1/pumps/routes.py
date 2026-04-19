@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps.auth import get_current_active_user
@@ -123,9 +123,30 @@ async def create_pump(
         else:
             target_org_id = first_org.id
 
+    # Reject duplicate pump names within the same organization (case-insensitive,
+    # ignoring soft-deleted rows so a name freed by deletion can be reused).
+    pump_name = payload.name.strip()
+    existing = (
+        await db.execute(
+            select(Pump.id).where(
+                Pump.org_id == target_org_id,
+                Pump.is_deleted == False,  # noqa: E712
+                func.lower(Pump.name) == pump_name.lower(),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f'A pump named "{pump_name}" already exists in this organisation. '
+                "Pick a different name or delete the existing pump first."
+            ),
+        )
+
     pump = Pump(
         org_id=target_org_id,
-        name=payload.name,
+        name=pump_name,
         location=payload.location,
         nozzle_count=payload.nozzle_count,
     )
@@ -214,7 +235,33 @@ async def update_pump(
     org = await _get_org_or_404(db, pump.org_id)
     verify_tenant_match(org.tenant_id, current_user)
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+
+    # If the name is being changed, enforce per-org uniqueness on the new value.
+    if "name" in updates and updates["name"] is not None:
+        new_name = str(updates["name"]).strip()
+        if new_name and new_name.lower() != pump.name.lower():
+            clash = (
+                await db.execute(
+                    select(Pump.id).where(
+                        Pump.org_id == pump.org_id,
+                        Pump.id != pump.id,
+                        Pump.is_deleted == False,  # noqa: E712
+                        func.lower(Pump.name) == new_name.lower(),
+                    )
+                )
+            ).scalar_one_or_none()
+            if clash is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        f'A pump named "{new_name}" already exists in this '
+                        "organisation. Pick a different name."
+                    ),
+                )
+        updates["name"] = new_name
+
+    for field, value in updates.items():
         setattr(pump, field, value)
 
     await db.flush()
