@@ -19,14 +19,30 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    # Idempotent: tolerate a leftover enum type from a partial prior run.
+    sa.Enum(
+        "NEW",
+        "CONTACTED",
+        "APPROVED",
+        "REJECTED",
+        name="access_request_status",
+    ).create(bind, checkfirst=True)
+
+    if inspector.has_table("access_requests"):
+        # Table already present from a prior partial/manual run — nothing left to do.
+        return
+
     status_enum = sa.Enum(
         "NEW",
         "CONTACTED",
         "APPROVED",
         "REJECTED",
         name="access_request_status",
+        create_type=False,
     )
-    status_enum.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "access_requests",
