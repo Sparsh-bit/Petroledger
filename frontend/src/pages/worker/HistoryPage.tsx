@@ -28,7 +28,7 @@ export default function HistoryPage() {
       try {
         const res = await adminApi.getShifts({ page, page_size: pageSize });
         if (!cancel) {
-          setShifts(res.items);
+          setShifts(res?.items ?? []);
           setTotal(res.total);
         }
       } catch (err) {

@@ -515,7 +515,7 @@ function AnomaliesTab({
           shift_id: shiftId,
           page_size: 50,
         });
-        if (!cancel) setAnomalies(res.items);
+        if (!cancel) setAnomalies(res?.items ?? []);
       } catch {
         if (!cancel) setAnomalies([]);
       } finally {

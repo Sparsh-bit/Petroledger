@@ -22,7 +22,7 @@ export default function ManagerReportsPage() {
     (async () => {
       try {
         const res = await adminApi.getShifts({ page: 1, page_size: 50 });
-        if (!cancel) setShifts(res.items);
+        if (!cancel) setShifts(res?.items ?? []);
       } catch {
         /* non-fatal */
       }

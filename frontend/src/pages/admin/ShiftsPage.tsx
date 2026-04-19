@@ -50,8 +50,8 @@ export default function ShiftsPage() {
         page,
         page_size: pageSize,
       });
-      setShifts(res.items);
-      setTotal(res.total);
+      setShifts(res?.items ?? []);
+      setTotal(res?.total ?? 0);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load shifts."));
     } finally {

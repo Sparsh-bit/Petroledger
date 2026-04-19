@@ -58,7 +58,7 @@ export default function AccessRequestsPage() {
       })
       .then((res) => {
         if (cancel) return;
-        setItems(res.items);
+        setItems(res?.items ?? []);
         setTotal(res.total);
         setError(null);
       })

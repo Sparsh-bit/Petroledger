@@ -41,7 +41,7 @@ export default function PumpDetailPage() {
         const dt = await adminApi
           .getDowntimes({ pump_id: id, page: 1, page_size: 20 })
           .catch(() => ({ items: [], total: 0 }));
-        if (!cancel) setDowntimes(dt.items);
+        if (!cancel) setDowntimes(dt?.items ?? []);
       } catch (err) {
         if (!cancel) toast.error(errMsg(err, "Failed to load pump."));
       } finally {

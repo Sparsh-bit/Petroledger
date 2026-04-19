@@ -44,7 +44,7 @@ export function ReconciliationWizard({ orgId }: ReconciliationWizardProps) {
         page: 1,
         page_size: 50,
       });
-      setQueue(res.items);
+      setQueue(res?.items ?? []);
     } catch (err) {
       toast.error(errMsg(err, "Failed to load queue."));
     } finally {
