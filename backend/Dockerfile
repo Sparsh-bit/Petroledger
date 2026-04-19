@@ -67,5 +67,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -fsS "http://127.0.0.1:${PORT}/health" || exit 1
 
-# Production: gunicorn managing uvicorn workers.
-CMD ["sh", "-c", "gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY:-4} -b 0.0.0.0:${PORT} --access-logfile - --error-logfile -"]
+# Production: run Alembic migrations, then start gunicorn managing uvicorn workers.
+# Set SKIP_MIGRATIONS=true to skip migrations (useful for debugging or re-deploys).
+CMD ["sh", "-c", "if [ \"$SKIP_MIGRATIONS\" != 'true' ]; then alembic upgrade head; fi && gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY:-4} -b 0.0.0.0:${PORT} --access-logfile - --error-logfile -"]
