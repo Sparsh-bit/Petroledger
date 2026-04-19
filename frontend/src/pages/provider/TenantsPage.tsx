@@ -23,24 +23,14 @@ interface CreateForm {
   tenant_name: string;
   owner_name: string;
   owner_email: string;
-  owner_phone: string;
   password: string;
-  pump_code: string;
-  pump_name: string;
-  subscription_plan: "BASIC" | "PRO" | "ENTERPRISE";
-  monthly_price_inr: string;
 }
 
 const EMPTY_CREATE_FORM: CreateForm = {
   tenant_name: "",
   owner_name: "",
   owner_email: "",
-  owner_phone: "",
   password: "",
-  pump_code: "",
-  pump_name: "",
-  subscription_plan: "BASIC",
-  monthly_price_inr: "0",
 };
 
 export default function TenantsPage() {
@@ -90,17 +80,12 @@ export default function TenantsPage() {
     if (creating) return;
     setCreating(true);
     try {
-      const trimmedCode = createForm.pump_code.trim().toUpperCase();
       await providerApi.createTenant({
         tenant_name: createForm.tenant_name.trim(),
         owner_name: createForm.owner_name.trim(),
         owner_email: createForm.owner_email.trim().toLowerCase(),
-        owner_phone: createForm.owner_phone.trim(),
+        owner_phone: "",
         password: createForm.password,
-        pump_code: trimmedCode || undefined,
-        pump_name: createForm.pump_name.trim() || undefined,
-        subscription_plan: createForm.subscription_plan,
-        monthly_price_inr: Number(createForm.monthly_price_inr) || 0,
       });
       toast.success(
         `Tenant created. Credentials emailed to ${createForm.owner_email.trim()}.`,
@@ -279,7 +264,7 @@ export default function TenantsPage() {
         <form
           id="create-tenant-form"
           onSubmit={handleCreate}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+          className="space-y-3"
         >
           <Input
             label="Tenant / Dealer name"
@@ -288,34 +273,7 @@ export default function TenantsPage() {
             onChange={(e) =>
               setCreateForm((f) => ({ ...f, tenant_name: e.target.value }))
             }
-            className="sm:col-span-2"
             placeholder="e.g. Sharma Fuels Pvt Ltd"
-          />
-          <div className="space-y-1.5">
-            <Input
-              label="Pump code (optional)"
-              mono
-              value={createForm.pump_code}
-              onChange={(e) =>
-                setCreateForm((f) => ({
-                  ...f,
-                  pump_code: e.target.value.toUpperCase(),
-                }))
-              }
-              placeholder="Leave blank to auto-generate"
-            />
-            <p className="text-[11px] text-slate-500">
-              Leave blank — we'll generate a <span className="font-mono">PL-XXXX-XXXX</span>{" "}
-              code and email it to the owner.
-            </p>
-          </div>
-          <Input
-            label="Pump name"
-            value={createForm.pump_name}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, pump_name: e.target.value }))
-            }
-            placeholder="Main Pump (optional)"
           />
           <Input
             label="Owner name"
@@ -324,15 +282,6 @@ export default function TenantsPage() {
             onChange={(e) =>
               setCreateForm((f) => ({ ...f, owner_name: e.target.value }))
             }
-          />
-          <Input
-            label="Owner phone"
-            required
-            value={createForm.owner_phone}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, owner_phone: e.target.value }))
-            }
-            placeholder="+91…"
           />
           <Input
             label="Owner email"
@@ -353,33 +302,6 @@ export default function TenantsPage() {
               setCreateForm((f) => ({ ...f, password: e.target.value }))
             }
             placeholder="At least 8 characters"
-          />
-          <Select
-            label="Plan"
-            value={createForm.subscription_plan}
-            onChange={(e) =>
-              setCreateForm((f) => ({
-                ...f,
-                subscription_plan: e.target.value as CreateForm["subscription_plan"],
-              }))
-            }
-            options={[
-              { value: "BASIC", label: "BASIC (1 org)" },
-              { value: "PRO", label: "PRO (5 orgs)" },
-              { value: "ENTERPRISE", label: "ENTERPRISE" },
-            ]}
-          />
-          <Input
-            label="Monthly price (₹)"
-            type="number"
-            min={0}
-            value={createForm.monthly_price_inr}
-            onChange={(e) =>
-              setCreateForm((f) => ({
-                ...f,
-                monthly_price_inr: e.target.value,
-              }))
-            }
           />
         </form>
         <div className="flex justify-end gap-2 pt-2">

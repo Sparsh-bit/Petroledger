@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Fuel } from "lucide-react";
 import { Button, Input } from "../../components/ui";
-import { api } from "../../api/client";
+import { api, apiErrorMessage } from "../../api/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -18,12 +18,7 @@ export default function ForgotPasswordPage() {
       await api.post("/auth/password-reset/request", { email: email.trim() });
       setSent(true);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ||
-        (err as { message?: string })?.message ||
-        "Something went wrong. Try again.";
-      setError(msg);
+      setError(apiErrorMessage(err, "Something went wrong. Try again."));
     } finally {
       setLoading(false);
     }

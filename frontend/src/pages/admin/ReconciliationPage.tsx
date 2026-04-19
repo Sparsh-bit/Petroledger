@@ -1,9 +1,10 @@
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ReconciliationWizard } from "../../components/reconciliation/ReconciliationWizard";
-import { useOrgStore } from "../../store/org";
+import { useOrgStore, useEnsureOrgs } from "../../store/org";
 
 export default function ReconciliationPage() {
   const { selectedOrgId } = useOrgStore();
+  useEnsureOrgs();
   return (
     <div className="space-y-6">
       <PageHeader

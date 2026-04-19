@@ -10,7 +10,7 @@ import {
 import { Link } from "react-router-dom";
 import { adminApi, AnomalyFlag, Shift } from "../../api/admin";
 import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
-import { useOrgStore } from "../../store/org";
+import { useOrgStore, useEnsureOrgs } from "../../store/org";
 
 interface KpiCard {
   label: string;

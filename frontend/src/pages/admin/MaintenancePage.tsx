@@ -7,7 +7,7 @@ import { Select } from "../../components/ui/Select";
 import { DataTable } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Downtime, Pump } from "../../api/admin";
-import { useOrgStore } from "../../store/org";
+import { useOrgStore, useEnsureOrgs } from "../../store/org";
 
 function errMsg(err: unknown, fallback: string): string {
   const e = err as { response?: { data?: { detail?: string } }; message?: string };
@@ -25,6 +25,7 @@ const REASON_TYPES = [
 
 export default function MaintenancePage() {
   const { selectedOrgId } = useOrgStore();
+  useEnsureOrgs();
   const [downtimes, setDowntimes] = useState<Downtime[]>([]);
   const [pumps, setPumps] = useState<Pump[]>([]);
   const [loading, setLoading] = useState(true);

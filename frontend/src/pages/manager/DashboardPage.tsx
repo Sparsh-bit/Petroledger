@@ -347,13 +347,13 @@ function StartShiftModal({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="block text-xs uppercase tracking-wide text-ink-400">
+          <label className="block text-xs uppercase tracking-wide text-slate-500">
             Pump
           </label>
           <select
             value={pumpId}
             onChange={(e) => setPumpId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900"
           >
             <option value="">Select pump…</option>
             {pumps.map((p) => (
@@ -364,13 +364,13 @@ function StartShiftModal({
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="block text-xs uppercase tracking-wide text-ink-400">
+          <label className="block text-xs uppercase tracking-wide text-slate-500">
             Worker
           </label>
           <select
             value={workerId}
             onChange={(e) => setWorkerId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900"
           >
             <option value="">Select worker…</option>
             {workers.map((w) => (
@@ -440,13 +440,13 @@ function CashEntryModal({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="block text-xs uppercase tracking-wide text-ink-400">
+          <label className="block text-xs uppercase tracking-wide text-slate-500">
             Active shift
           </label>
           <select
             value={shiftId}
             onChange={(e) => setShiftId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900"
           >
             <option value="">Select shift…</option>
             {shifts.map((s) => (
@@ -536,13 +536,13 @@ function SubmitReadingModal({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="block text-xs uppercase tracking-wide text-ink-400">
+          <label className="block text-xs uppercase tracking-wide text-slate-500">
             Active shift
           </label>
           <select
             value={shiftId}
             onChange={(e) => setShiftId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900"
           >
             <option value="">Select shift…</option>
             {shifts.map((s) => (
@@ -553,13 +553,13 @@ function SubmitReadingModal({
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="block text-xs uppercase tracking-wide text-ink-400">
+          <label className="block text-xs uppercase tracking-wide text-slate-500">
             Nozzle
           </label>
           <select
             value={nozzleId}
             onChange={(e) => setNozzleId(e.target.value)}
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900"
           >
             <option value="">Select nozzle…</option>
             {nozzles.map((n) => (

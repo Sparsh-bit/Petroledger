@@ -4,6 +4,7 @@ import { ArrowLeft, Fuel, KeyRound, ShieldCheck } from "lucide-react";
 
 import { Button, Input } from "../../components/ui";
 import { loginRequest } from "../../api/auth";
+import { apiErrorMessage } from "../../api/client";
 import { roleHomePath, useAuth } from "../../store/auth";
 
 export default function LoginPage() {
@@ -29,13 +30,9 @@ export default function LoginPage() {
       setUser(res.user);
       navigate(roleHomePath(res.user.role), { replace: true });
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string; message?: string } }; message?: string })
-          ?.response?.data?.detail ||
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        (err as { message?: string })?.message ||
-        "Login failed. Please check your credentials.";
-      setError(msg);
+      setError(
+        apiErrorMessage(err, "Login failed. Please check your credentials."),
+      );
     } finally {
       setLoading(false);
     }

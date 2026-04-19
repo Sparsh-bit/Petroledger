@@ -7,7 +7,7 @@ import { Select } from "../../components/ui/Select";
 import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Pump, Worker } from "../../api/admin";
-import { useOrgStore } from "../../store/org";
+import { useOrgStore, useEnsureOrgs } from "../../store/org";
 
 function errMsg(err: unknown, fallback: string): string {
   const e = err as { response?: { data?: { detail?: string } }; message?: string };
@@ -16,6 +16,7 @@ function errMsg(err: unknown, fallback: string): string {
 
 export default function WorkersPage() {
   const { selectedOrgId } = useOrgStore();
+  useEnsureOrgs();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [pumps, setPumps] = useState<Pump[]>([]);
   const [total, setTotal] = useState(0);

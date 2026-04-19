@@ -17,7 +17,7 @@ import {
   GradeSalesRow,
   VarianceTrendRow,
 } from "../../api/admin";
-import { useOrgStore } from "../../store/org";
+import { useOrgStore, useEnsureOrgs } from "../../store/org";
 
 interface AnalyticsData {
   variance: VarianceTrendRow[];
@@ -32,6 +32,7 @@ function errMsg(err: unknown, fallback: string): string {
 
 export default function AnalyticsPage() {
   const { selectedOrgId } = useOrgStore();
+  useEnsureOrgs();
   const [days, setDays] = useState(7);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);

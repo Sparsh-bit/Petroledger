@@ -25,6 +25,7 @@ from app.models.organization import Organization
 from app.models.pump import FuelType, Nozzle, Pump
 from app.models.reconciliation import ReconciliationResult, ReconciliationStatus
 from app.models.shift import Shift, ShiftStatus
+from app.models.feature import TenantFeature, TenantFeatureOverride, TenantPaymentConfig
 from app.models.tenant import Tenant
 from app.models.transaction import POSTransaction, PumpLog, UPITransaction
 from app.models.user import User, UserRole
@@ -50,6 +51,9 @@ __all__ = [
     "Organization",
     "PosBatchSettlement",
     "PosEntryMethod",
+    "TenantFeature",
+    "TenantFeatureOverride",
+    "TenantPaymentConfig",
     "Tenant",
     "User",
     "UserRole",
