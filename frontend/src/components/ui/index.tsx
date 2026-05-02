@@ -27,10 +27,11 @@ export function Button({
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  hint?: string;
   mono?: boolean;
 }
 
-export function Input({ label, error, mono, className, id, ...props }: InputProps) {
+export function Input({ label, error, hint, mono, className, id, ...props }: InputProps) {
   const inputId = id || props.name || label;
   return (
     <div className="space-y-1.5">
@@ -58,6 +59,9 @@ export function Input({ label, error, mono, className, id, ...props }: InputProp
         <p id={`${inputId}-err`} className="text-xs text-red-600">
           {error}
         </p>
+      )}
+      {!error && hint && (
+        <p className="text-xs text-slate-400">{hint}</p>
       )}
     </div>
   );
