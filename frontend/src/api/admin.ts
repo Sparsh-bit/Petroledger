@@ -264,22 +264,42 @@ export const adminApi = {
       .get<Paged<Worker>>("/workers/", { params })
       .then((r) => r.data),
 
-  /** Two-step worker creation: create user, then worker profile. */
+  /** Two-step worker creation: create user account, then attach worker profile.
+   *  If the email already exists (409), we look up the user and attach to them. */
   createWorker: async (payload: WorkerCreatePayload) => {
-    // Step 1: create user with role=worker
-    const userRes = await api.post<{
-      id: string;
-      email: string;
-    }>("/users/", {
-      email: payload.email,
-      password: payload.password,
-      role: "worker",
-      org_id: payload.org_id,
-    });
-    // Step 2: create worker profile linked to that user
+    let userId: string;
+
+    try {
+      const res = await api.post<{ id: string }>("/users/", {
+        email: payload.email,
+        password: payload.password,
+        role: "worker",
+        org_id: payload.org_id,
+      });
+      userId = res.data.id;
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        // User already exists — look them up and reuse their ID
+        const search = await api.get<{ items: { id: string; email: string }[] }>(
+          "/users/",
+          { params: { search: payload.email, page_size: 5 } },
+        );
+        const match = search.data.items.find(
+          (u) => u.email.toLowerCase() === payload.email.toLowerCase(),
+        );
+        if (!match) {
+          throw new Error("Email already exists but could not be located. Contact support.");
+        }
+        userId = match.id;
+      } else {
+        throw err;
+      }
+    }
+
     return api
       .post<Worker>("/workers/", {
-        user_id: userRes.data.id,
+        user_id: userId,
         pump_id: payload.pump_id,
         employee_code: payload.employee_code,
         joined_date: payload.joined_date,
