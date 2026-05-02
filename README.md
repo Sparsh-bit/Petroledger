@@ -55,8 +55,8 @@ Portals:
 
 ## Deploy
 
-- **Frontend** → Vercel. Root: `frontend/`. Build: `npm run build`. Output: `dist`.
-- **Backend** → Render. Root: `backend/`. Dockerfile runtime target. See `render.yaml`.
+- **Frontend** → Vercel. Connect repo root (`/`). Set env var `VITE_API_BASE_URL` to your Render URL. `vercel.json` handles build, output dir, SPA rewrites, and security headers. Every push to `main` auto-deploys.
+- **Backend** → Render. "New Blueprint" → reads `render.yaml` automatically. Set `DATABASE_URL`, `REDIS_URL`, `CORS_ORIGINS` (your Vercel URL) in the dashboard.
 - **AWS** (optional) → Terraform skeleton in `infrastructure/terraform/`.
 
 Full runbook: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).

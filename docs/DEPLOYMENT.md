@@ -19,10 +19,21 @@ Default, lowest-friction path. Already wired via `vercel.json` and
 
 ### Frontend — Vercel
 
-1. Import repo → root directory `frontend/`.
-2. Framework = Vite (auto).
-3. Env var `VITE_API_BASE_URL` = your Render URL.
-4. Deploy. SPA fallback + security headers come from `vercel.json`.
+1. **Import repo** → set root directory to **`/` (repo root)**, not `frontend/`.
+   `vercel.json` at the repo root controls the full build:
+   - Build command: `cd frontend && npm install && npm run build`
+   - Output directory: `frontend/dist`
+   - SPA rewrites and security headers are already configured.
+2. **Framework preset** → Other (auto-detected from `vercel.json`).
+3. **Environment variable** (Vercel dashboard → Settings → Environment Variables):
+
+   | Key | Value |
+   |-----|-------|
+   | `VITE_API_BASE_URL` | `https://<your-service>.onrender.com` |
+
+4. **Deploy**. Every push to `main` triggers a production deployment automatically.
+5. Copy your Vercel URL (e.g. `https://petroledger.vercel.app`) and add it to
+   `CORS_ORIGINS` in your Render service environment, then redeploy Render.
 
 ## Option 2: AWS (Terraform)
 
