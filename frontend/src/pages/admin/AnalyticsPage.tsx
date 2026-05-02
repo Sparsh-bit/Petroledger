@@ -10,7 +10,7 @@ import {
 import { Card } from "../../components/ui";
 import { Select } from "../../components/ui/Select";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { Spinner } from "../../components/ui/Spinner";
+import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
 import {
   adminApi,
   CashflowRow,
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
           <h3 className="font-semibold text-slate-900">Variance by day</h3>
         </div>
         {loading ? (
-          <Spinner label="Loading…" />
+          <SkeletonList rows={5} />
         ) : (
           <VarianceChart rows={data?.variance ?? []} />
         )}
@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
             Revenue by fuel grade
           </h3>
           {loading ? (
-            <Spinner label="Loading…" />
+            <SkeletonList rows={5} />
           ) : (
             <FuelGradeTable rows={data?.grades ?? []} />
           )}
@@ -165,7 +165,7 @@ export default function AnalyticsPage() {
         <Card>
           <h3 className="font-semibold text-slate-900 mb-4">Daily cashflow</h3>
           {loading ? (
-            <Spinner label="Loading…" />
+            <SkeletonList rows={5} />
           ) : (
             <CashflowTable rows={data?.cashflow ?? []} />
           )}
@@ -196,7 +196,7 @@ function Kpi({
             {label}
           </div>
           <div className="mt-2 text-2xl font-bold text-slate-900">
-            {loading ? "…" : value}
+            {loading ? <Skeleton className="h-7 w-20" /> : value}
           </div>
         </div>
         <span

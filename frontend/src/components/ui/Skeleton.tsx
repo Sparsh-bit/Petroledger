@@ -41,3 +41,39 @@ export function SkeletonList({ rows = 5 }: { rows?: number }) {
     </div>
   );
 }
+
+/** Grid of KPI-card skeletons for dashboards. */
+export function SkeletonKpiGrid({ cards = 4 }: { cards?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {Array.from({ length: cards }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-8 w-8 rounded-lg" />
+          </div>
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Generic card-body skeleton — use inside Card components whose
+ *  surrounding chrome (title, actions) is already rendered. */
+export function SkeletonCard({ lines = 4 }: { lines?: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={i === 0 ? "h-5 w-1/3" : "h-4 w-full"}
+        />
+      ))}
+    </div>
+  );
+}

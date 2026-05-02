@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { Banknote, Clock, Gauge } from "lucide-react";
 import { Badge, Button, Card, Input } from "../../components/ui";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { Spinner } from "../../components/ui/Spinner";
+import { SkeletonCard } from "../../components/ui/Skeleton";
 import { adminApi, Nozzle } from "../../api/admin";
 import { shiftsApi, MeterReading, CashEntry } from "../../api/shifts";
 
@@ -120,8 +120,9 @@ export default function MyShiftPage() {
 
   if (loading) {
     return (
-      <div className="py-10">
-        <Spinner label="Loading shift…" />
+      <div className="space-y-4">
+        <SkeletonCard lines={3} />
+        <SkeletonCard lines={5} />
       </div>
     );
   }

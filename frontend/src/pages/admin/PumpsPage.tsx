@@ -1,6 +1,7 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Fuel, Trash2 } from "lucide-react";
 import { Badge, Button, Input } from "../../components/ui";
 import { Modal } from "../../components/ui/Modal";
@@ -16,16 +17,35 @@ function errMsg(err: unknown, fallback: string): string {
 
 export default function PumpsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { selectedOrgId } = useOrgStore();
   useEnsureOrgs();
-  const [pumps, setPumps] = useState<Pump[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const pageSize = 25;
+
+  const pumpsQuery = useQuery({
+    queryKey: ["pumps", { orgId: selectedOrgId ?? null, page, pageSize }],
+    queryFn: () =>
+      adminApi.getPumps({
+        org_id: selectedOrgId ?? undefined,
+        page,
+        page_size: pageSize,
+      }),
+    placeholderData: (prev) => prev,
+  });
+
+  const pumps = pumpsQuery.data?.items ?? [];
+  const total = pumpsQuery.data?.total ?? 0;
+  const loading = pumpsQuery.isPending;
+
+  if (pumpsQuery.error) {
+    // One-shot toast on transient failures — the query retries once on its own.
+    const msg = errMsg(pumpsQuery.error, "Failed to load pumps.");
+    if (msg) toast.error(msg);
+  }
 
   async function onDeletePump(p: Pump) {
     if (!window.confirm(`Delete pump "${p.name}"? This cannot be undone.`)) {
@@ -35,35 +55,13 @@ export default function PumpsPage() {
     try {
       await adminApi.deletePump(p.id);
       toast.success(`Pump "${p.name}" deleted.`);
-      void load();
+      await queryClient.invalidateQueries({ queryKey: ["pumps"] });
     } catch (err) {
       toast.error(errMsg(err, "Failed to delete pump."));
     } finally {
       setDeletingId(null);
     }
   }
-
-  async function load() {
-    setLoading(true);
-    try {
-      const res = await adminApi.getPumps({
-        org_id: selectedOrgId ?? undefined,
-        page,
-        page_size: pageSize,
-      });
-      setPumps(res?.items ?? []);
-      setTotal(res?.total ?? 0);
-    } catch (err) {
-      toast.error(errMsg(err, "Failed to load pumps."));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrgId, page]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -184,7 +182,7 @@ export default function PumpsPage() {
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
           setCreateOpen(false);
-          void load();
+          void queryClient.invalidateQueries({ queryKey: ["pumps"] });
         }}
       />
     </div>

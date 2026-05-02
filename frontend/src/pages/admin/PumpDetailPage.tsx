@@ -5,7 +5,7 @@ import { ArrowLeft, Save, Trash2, Wrench } from "lucide-react";
 import { Badge, Button, Card, Input } from "../../components/ui";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { Spinner } from "../../components/ui/Spinner";
+import { SkeletonCard } from "../../components/ui/Skeleton";
 import { adminApi, Pump, Downtime } from "../../api/admin";
 
 function errMsg(err: unknown, fallback: string): string {
@@ -85,8 +85,9 @@ export default function PumpDetailPage() {
 
   if (loading) {
     return (
-      <div className="py-10">
-        <Spinner label="Loading pump…" />
+      <div className="space-y-4">
+        <SkeletonCard lines={3} />
+        <SkeletonCard lines={5} />
       </div>
     );
   }

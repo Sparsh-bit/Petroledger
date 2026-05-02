@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { Mail, Shield, KeyRound, Server, Sliders } from "lucide-react";
 import { Badge, Button, Card, Input } from "../../components/ui";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { Spinner } from "../../components/ui/Spinner";
+import { SkeletonCard } from "../../components/ui/Skeleton";
 import {
   changePasswordRequest,
   meRequest,
@@ -77,7 +77,10 @@ export default function ProviderSettingsPage() {
       />
 
       {loading ? (
-        <Spinner label="Loading…" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonCard lines={5} />
+          <SkeletonCard lines={5} />
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
