@@ -8,11 +8,8 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { SkeletonCard } from "../../components/ui/Skeleton";
 import { adminApi, Tank } from "../../api/admin";
 import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { errMsg } from "../../lib/errMsg";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 function levelTone(pct: number): "green" | "amber" | "red" {
   if (pct >= 50) return "green";

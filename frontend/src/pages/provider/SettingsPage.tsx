@@ -10,11 +10,8 @@ import {
   type MeResponse,
 } from "../../api/auth";
 import { providerApi, ProviderSettings } from "../../api/provider";
+import { errMsg } from "../../lib/errMsg";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export default function ProviderSettingsPage() {
   const [me, setMe] = useState<MeResponse | null>(null);

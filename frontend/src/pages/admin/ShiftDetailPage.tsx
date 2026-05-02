@@ -24,13 +24,10 @@ import {
   UpiTransaction,
 } from "../../api/shifts";
 import { statusBadgeTone } from "./ShiftsPage";
+import { errMsg } from "../../lib/errMsg";
 
 type Tab = "overview" | "readings" | "payments" | "reconciliation" | "anomalies";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 function toNum(v: string | number | null | undefined): number {
   if (v === null || v === undefined) return 0;

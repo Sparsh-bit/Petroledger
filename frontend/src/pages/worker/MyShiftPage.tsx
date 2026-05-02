@@ -6,6 +6,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { SkeletonCard } from "../../components/ui/Skeleton";
 import { adminApi, Nozzle } from "../../api/admin";
 import { shiftsApi, MeterReading, CashEntry } from "../../api/shifts";
+import { errMsg } from "../../lib/errMsg";
 
 interface ActiveShift {
   id: string;
@@ -15,10 +16,6 @@ interface ActiveShift {
   status: string;
 }
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 function unwrap<T>(res: T[] | { items: T[] }): T[] {
   return Array.isArray(res) ? res : res.items ?? [];

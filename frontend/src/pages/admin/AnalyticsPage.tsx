@@ -18,6 +18,7 @@ import {
   VarianceTrendRow,
 } from "../../api/admin";
 import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { errMsg } from "../../lib/errMsg";
 
 interface AnalyticsData {
   variance: VarianceTrendRow[];
@@ -25,10 +26,6 @@ interface AnalyticsData {
   cashflow: CashflowRow[];
 }
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export default function AnalyticsPage() {
   const { selectedOrgId } = useOrgStore();

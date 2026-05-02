@@ -10,11 +10,8 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Pump, Shift, Worker, Nozzle } from "../../api/admin";
 import { shiftsApi } from "../../api/shifts";
 import { statusBadgeTone } from "../admin/ShiftsPage";
+import { errMsg } from "../../lib/errMsg";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export default function ManagerShiftsPage() {
   const navigate = useNavigate();
@@ -39,7 +36,7 @@ export default function ManagerShiftsPage() {
           page_size: pageSize,
         }),
         adminApi.getPumps({ page: 1, page_size: 100 }),
-        adminApi.getWorkers({ page: 1, page_size: 200 }),
+        adminApi.getWorkers({ page: 1, page_size: 100 }),
       ]);
       setShifts(Array.isArray(shiftsRes) ? shiftsRes : shiftsRes?.items ?? []);
       setTotal(shiftsRes?.total ?? 0);

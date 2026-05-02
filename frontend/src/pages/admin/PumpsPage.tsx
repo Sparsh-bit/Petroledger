@@ -9,11 +9,8 @@ import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Pump } from "../../api/admin";
 import { useOrgStore, useEnsureOrgs, refreshOrgs } from "../../store/org";
+import { errMsg } from "../../lib/errMsg";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export default function PumpsPage() {
   const navigate = useNavigate();

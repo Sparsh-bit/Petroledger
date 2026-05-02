@@ -14,6 +14,7 @@ import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
 import { shiftsApi } from "../../api/shifts";
 import { adminApi } from "../../api/admin";
 import { api } from "../../api/client";
+import { errMsg } from "../../lib/errMsg";
 
 interface Shift {
   id: string;
@@ -48,18 +49,7 @@ interface CashEntry {
   created_at: string;
 }
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as {
-    response?: { data?: { message?: string; detail?: string } };
-    message?: string;
-  };
-  return (
-    e?.response?.data?.detail ||
-    e?.response?.data?.message ||
-    e?.message ||
-    fallback
-  );
-}
+
 
 function statusTone(status: string): string {
   const s = status.toUpperCase();

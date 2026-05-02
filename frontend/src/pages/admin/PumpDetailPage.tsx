@@ -7,11 +7,8 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SkeletonCard } from "../../components/ui/Skeleton";
 import { adminApi, Pump, Downtime } from "../../api/admin";
+import { errMsg } from "../../lib/errMsg";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export default function PumpDetailPage() {
   const { id } = useParams<{ id: string }>();

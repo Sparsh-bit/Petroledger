@@ -6,13 +6,10 @@ import { Select } from "../../components/ui/Select";
 import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { providerApi, ProviderUserItem } from "../../api/provider";
+import { errMsg } from "../../lib/errMsg";
 
 const ROLES = ["", "owner", "admin", "manager", "worker", "superadmin", "provider"];
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export default function ProviderUsersPage() {
   const [items, setItems] = useState<ProviderUserItem[]>([]);

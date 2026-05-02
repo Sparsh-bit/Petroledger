@@ -7,13 +7,10 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Shift } from "../../api/admin";
 import { reportsApi } from "../../api/reports";
 import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { errMsg } from "../../lib/errMsg";
 
 type Tab = "shift" | "daily";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export default function ReportsPage() {
   const { selectedOrgId, orgs } = useOrgStore();

@@ -8,11 +8,8 @@ import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, AnomalyFlag } from "../../api/admin";
 import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { errMsg } from "../../lib/errMsg";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 function sevTone(sev: string): "red" | "amber" | "slate" | "blue" {
   const s = sev.toUpperCase();

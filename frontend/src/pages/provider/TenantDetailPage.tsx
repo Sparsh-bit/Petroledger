@@ -27,6 +27,7 @@ import {
   TenantFeatureItem,
   PaymentConfigResponse,
 } from "../../api/provider";
+import { errMsg } from "../../lib/errMsg";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -72,10 +73,6 @@ const GATEWAYS = [
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 // ── Tab button ─────────────────────────────────────────────────────────────
 

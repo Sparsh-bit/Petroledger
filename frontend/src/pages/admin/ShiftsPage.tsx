@@ -8,11 +8,8 @@ import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Shift, Pump, Worker } from "../../api/admin";
 import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { errMsg } from "../../lib/errMsg";
 
-function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { detail?: string } }; message?: string };
-  return e?.response?.data?.detail || e?.message || fallback;
-}
 
 export function statusBadgeTone(status: string): "green" | "amber" | "blue" | "red" | "slate" {
   const s = status.toUpperCase();
@@ -73,7 +70,7 @@ export default function ShiftsPage() {
           adminApi.getWorkers({
             org_id: selectedOrgId ?? undefined,
             page: 1,
-            page_size: 200,
+            page_size: 100,
           }),
         ]);
         setPumps(Array.isArray(p) ? p : p?.items ?? []);
