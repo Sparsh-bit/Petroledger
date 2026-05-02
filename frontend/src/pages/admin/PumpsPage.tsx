@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,11 +41,13 @@ export default function PumpsPage() {
   const total = pumpsQuery.data?.total ?? 0;
   const loading = pumpsQuery.isPending;
 
-  if (pumpsQuery.error) {
-    // One-shot toast on transient failures — the query retries once on its own.
-    const msg = errMsg(pumpsQuery.error, "Failed to load pumps.");
-    if (msg) toast.error(msg);
-  }
+  const lastError = useRef<unknown>(null);
+  useEffect(() => {
+    if (pumpsQuery.error && pumpsQuery.error !== lastError.current) {
+      lastError.current = pumpsQuery.error;
+      toast.error(errMsg(pumpsQuery.error, "Failed to load pumps."));
+    }
+  }, [pumpsQuery.error]);
 
   async function onDeletePump(p: Pump) {
     if (!window.confirm(`Delete pump "${p.name}"? This cannot be undone.`)) {

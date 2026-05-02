@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -8,11 +7,12 @@ import {
   Lock,
   TrendingUp,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "../../components/ui";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { SkeletonCard, SkeletonList } from "../../components/ui/Skeleton";
 import {
   providerApi,
-  ProviderStats,
   TenantSummary,
 } from "../../api/provider";
 import { accessRequestsApi, AccessRequest } from "../../api/access-requests";
@@ -29,46 +29,46 @@ function relativeTime(iso: string): string {
 }
 
 export default function ProviderDashboardPage() {
-  const [stats, setStats] = useState<ProviderStats | null>(null);
-  const [recent, setRecent] = useState<TenantSummary[]>([]);
-  const [newRequests, setNewRequests] = useState<AccessRequest[]>([]);
-  const [newRequestCount, setNewRequestCount] = useState<number>(0);
-  const [error, setError] = useState<string | null>(null);
+  const kpisQ = useQuery({
+    queryKey: ["provider-kpis"],
+    queryFn: () => providerApi.getProviderKpis(),
+    placeholderData: (prev) => prev,
+  });
 
-  useEffect(() => {
-    Promise.all([providerApi.getProviderKpis(), providerApi.getTenants()])
-      .then(([s, o]) => {
-        setStats(s);
-        setRecent((Array.isArray(o) ? o : []).slice(0, 6));
-      })
-      .catch((e) => setError(e?.message ?? "Failed to load"));
-    accessRequestsApi
-      .list({ status: "NEW", page_size: 5 })
-      .then((r) => {
-        setNewRequests(r?.items ?? []);
-        setNewRequestCount(r?.total ?? 0);
-      })
-      .catch(() => {
-        /* non-blocking */
-      });
-  }, []);
+  const tenantsQ = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => providerApi.getTenants(),
+    placeholderData: (prev) => prev,
+  });
+
+  const requestsQ = useQuery({
+    queryKey: ["access-requests-new"],
+    queryFn: () => accessRequestsApi.list({ status: "NEW", page_size: 5 }),
+    placeholderData: (prev) => prev,
+  });
+
+  const loading = kpisQ.isPending;
+  const stats = kpisQ.data ?? null;
+  const recent: TenantSummary[] = (Array.isArray(tenantsQ.data) ? tenantsQ.data : []).slice(0, 6);
+  const newRequests: AccessRequest[] = requestsQ.data?.items ?? [];
+  const newRequestCount = requestsQ.data?.total ?? 0;
 
   const cards = [
     {
       label: "Total tenants",
-      value: stats?.total_orgs ?? "—",
+      value: stats ? String(stats.total_orgs) : "—",
       icon: Building2,
       tone: "text-sky-600 bg-sky-50",
     },
     {
       label: "Active",
-      value: stats?.active_orgs ?? "—",
+      value: stats ? String(stats.active_orgs) : "—",
       icon: CheckCircle2,
       tone: "text-emerald-600 bg-emerald-50",
     },
     {
       label: "Locked",
-      value: stats?.locked_orgs ?? "—",
+      value: stats ? String(stats.locked_orgs) : "—",
       icon: Lock,
       tone: "text-red-600 bg-red-50",
     },
@@ -80,7 +80,7 @@ export default function ProviderDashboardPage() {
     },
     {
       label: "New requests",
-      value: newRequestCount,
+      value: String(newRequestCount),
       icon: Inbox,
       tone: "text-amber-600 bg-amber-50",
     },
@@ -93,9 +93,9 @@ export default function ProviderDashboardPage() {
         description="Platform-wide health across every tenant."
       />
 
-      {error && (
+      {kpisQ.error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
+          Could not load KPIs. Check your connection and reload.
         </div>
       )}
 
@@ -110,7 +110,7 @@ export default function ProviderDashboardPage() {
                     {c.label}
                   </div>
                   <div className="mt-2 text-2xl font-bold text-slate-900">
-                    {c.value}
+                    {loading ? <div className="h-7 w-16 rounded bg-slate-200 animate-pulse" /> : c.value}
                   </div>
                 </div>
                 <span
@@ -137,7 +137,9 @@ export default function ProviderDashboardPage() {
           </Link>
         </div>
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          {newRequests.length === 0 ? (
+          {requestsQ.isPending ? (
+            <div className="p-4"><SkeletonList rows={3} /></div>
+          ) : newRequests.length === 0 ? (
             <div className="px-5 py-6 text-center text-slate-500 text-sm">
               No new access requests.
             </div>

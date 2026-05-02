@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Building2, Lock, LockOpen, Plus, Search } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge, Button, Input } from "../../components/ui";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Modal } from "../../components/ui/Modal";
@@ -34,8 +35,7 @@ const EMPTY_CREATE_FORM: CreateForm = {
 };
 
 export default function TenantsPage() {
-  const [tenants, setTenants] = useState<TenantSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [plan, setPlan] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -45,20 +45,18 @@ export default function TenantsPage() {
   const [createForm, setCreateForm] = useState<CreateForm>(EMPTY_CREATE_FORM);
   const [creating, setCreating] = useState(false);
 
-  async function load() {
-    setLoading(true);
-    try {
-      setTenants(await providerApi.getTenants());
-    } catch (err) {
-      toast.error(errMsg(err, "Failed to load tenants."));
-    } finally {
-      setLoading(false);
-    }
-  }
+  const tenantsQ = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => providerApi.getTenants(),
+    placeholderData: (prev) => prev,
+  });
 
-  useEffect(() => {
-    void load();
-  }, []);
+  const tenants: TenantSummary[] = tenantsQ.data ?? [];
+  const loading = tenantsQ.isPending;
+
+  async function load() {
+    await queryClient.invalidateQueries({ queryKey: ["tenants"] });
+  }
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();

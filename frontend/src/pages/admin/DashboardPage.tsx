@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -8,6 +7,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi, AnomalyFlag, Pump, Shift } from "../../api/admin";
 import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
 import { useOrgStore, useEnsureOrgs, refreshOrgs } from "../../store/org";
@@ -42,73 +42,38 @@ function statusTone(status: string): string {
 export default function AdminDashboardPage() {
   const { selectedOrgId } = useOrgStore();
   useEnsureOrgs();
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [shiftsTotal, setShiftsTotal] = useState<number>(0);
-  const [flags, setFlags] = useState<AnomalyFlag[]>([]);
-  const [varianceTotal, setVarianceTotal] = useState<number | null>(null);
-  const [pumps, setPumps] = useState<Pump[]>([]);
-  const [pumpsTotal, setPumpsTotal] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
 
-  // Load KPIs. If no org is selected (e.g. backend just self-healed one),
-  // still attempt the load with org_id undefined — the admin APIs fall
-  // back to tenant-scoped data. We also refresh the org list so the UI
-  // picks up the newly-created org without a manual reload.
-  useEffect(() => {
-    let cancel = false;
+  const dashQ = useQuery({
+    queryKey: ["admin-dashboard", selectedOrgId],
+    queryFn: async () => {
+      void refreshOrgs();
+      const [shiftsRes, anomaliesRes, varianceRes, pumpsRes] = await Promise.all([
+        adminApi.getShifts({ page: 1, page_size: 10, org_id: selectedOrgId ?? undefined }),
+        adminApi
+          .getAnomalies({ site_id: selectedOrgId ?? undefined, is_resolved: false, page: 1, page_size: 5 })
+          .catch(() => ({ items: [] as AnomalyFlag[], total: 0 })),
+        selectedOrgId
+          ? adminApi.getVarianceTrend(selectedOrgId, 30).catch(() => [])
+          : Promise.resolve([]),
+        adminApi
+          .getPumps({ page: 1, page_size: 10, org_id: selectedOrgId ?? undefined })
+          .catch(() => ({ items: [] as Pump[], total: 0 })),
+      ]);
+      return { shiftsRes, anomaliesRes, varianceRes, pumpsRes };
+    },
+    placeholderData: (prev) => prev,
+  });
 
-    (async () => {
-      setLoading(true);
-      try {
-        void refreshOrgs();
-        const [shiftsRes, anomaliesRes, varianceRes, pumpsRes] = await Promise.all([
-          adminApi.getShifts({
-            page: 1,
-            page_size: 10,
-            org_id: selectedOrgId ?? undefined,
-          }),
-          adminApi
-            .getAnomalies({
-              site_id: selectedOrgId ?? undefined,
-              is_resolved: false,
-              page: 1,
-              page_size: 5,
-            })
-            .catch(() => ({ items: [], total: 0 })),
-          selectedOrgId
-            ? adminApi.getVarianceTrend(selectedOrgId, 30).catch(() => [])
-            : Promise.resolve([]),
-          adminApi
-            .getPumps({
-              page: 1,
-              page_size: 10,
-              org_id: selectedOrgId ?? undefined,
-            })
-            .catch(() => ({ items: [], total: 0 })),
-        ]);
-        if (cancel) return;
-        setShifts(shiftsRes?.items ?? []);
-        setShiftsTotal(shiftsRes?.total ?? 0);
-        setFlags((anomaliesRes?.items ?? []).slice(0, 5));
-        setPumps(pumpsRes?.items ?? []);
-        setPumpsTotal(pumpsRes?.total ?? 0);
-        const variances = Array.isArray(varianceRes) ? varianceRes : [];
-        const total = variances.reduce(
-          (acc, r) => acc + Number(r.total_variance ?? 0),
-          0,
-        );
-        setVarianceTotal(total);
-      } catch {
-        /* errors are non-fatal for the dashboard */
-      } finally {
-        if (!cancel) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancel = true;
-    };
-  }, [selectedOrgId]);
+  const loading = dashQ.isPending;
+  const shifts: Shift[] = dashQ.data?.shiftsRes?.items ?? [];
+  const shiftsTotal = dashQ.data?.shiftsRes?.total ?? 0;
+  const flags: AnomalyFlag[] = (dashQ.data?.anomaliesRes?.items ?? []).slice(0, 5);
+  const pumps: Pump[] = dashQ.data?.pumpsRes?.items ?? [];
+  const pumpsTotal = dashQ.data?.pumpsRes?.total ?? 0;
+  const variances = Array.isArray(dashQ.data?.varianceRes) ? dashQ.data!.varianceRes : [];
+  const varianceTotal = dashQ.data
+    ? variances.reduce((acc, r) => acc + Number(r.total_variance ?? 0), 0)
+    : null;
 
   const activeShifts = shifts.filter((s) => s.status === "ACTIVE").length;
   const pendingRecon = shifts.filter(
