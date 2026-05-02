@@ -186,7 +186,6 @@ export default function WorkersPage() {
         open={createOpen}
         pumps={pumps}
         orgId={selectedOrgId}
-        workerCount={total}
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
           setCreateOpen(false);
@@ -343,38 +342,37 @@ function InviteManagerModal({
   );
 }
 
-function generateEmpCode(count: number): string {
-  return `EMP-${String(count + 1).padStart(3, "0")}`;
+function generateEmpCode(): string {
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `EMP-${suffix}`;
 }
 
 function CreateWorkerModal({
   open,
   pumps,
   orgId,
-  workerCount,
   onClose,
   onCreated,
 }: {
   open: boolean;
   pumps: Pump[];
   orgId: string | null;
-  workerCount: number;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [employeeCode, setEmployeeCode] = useState(() => generateEmpCode(workerCount));
+  const [employeeCode, setEmployeeCode] = useState(() => generateEmpCode());
   const [pumpId, setPumpId] = useState("");
   const [joinedDate, setJoinedDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
   const [busy, setBusy] = useState(false);
 
-  // Refresh generated code whenever the modal opens
+  // Regenerate a fresh unique code every time the modal opens
   useEffect(() => {
-    if (open) setEmployeeCode(generateEmpCode(workerCount));
-  }, [open, workerCount]);
+    if (open) setEmployeeCode(generateEmpCode());
+  }, [open]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
