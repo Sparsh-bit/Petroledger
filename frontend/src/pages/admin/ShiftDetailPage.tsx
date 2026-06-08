@@ -10,6 +10,9 @@ import {
   RefreshCw,
   AlertTriangle,
   Play,
+  Check,
+  X,
+  Lock,
 } from "lucide-react";
 import { Badge, Button, Card } from "../../components/ui";
 import { Input } from "../../components/ui";
@@ -25,8 +28,10 @@ import {
 } from "../../api/shifts";
 import { statusBadgeTone } from "./ShiftsPage";
 import { errMsg } from "../../lib/errMsg";
+import { WorkerCashSummary } from "../../components/reconciliation/WorkerCashSummary";
+import { DataIngestionPanel } from "../../components/reconciliation/DataIngestionPanel";
 
-type Tab = "overview" | "readings" | "payments" | "reconciliation" | "anomalies";
+type Tab = "overview" | "readings" | "payments" | "reconciliation" | "anomalies" | "ingestion";
 
 
 function toNum(v: string | number | null | undefined): number {
@@ -50,33 +55,59 @@ export default function ShiftDetailPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
 
+  const [rejectReason, setRejectReason] = useState("");
+  const [showReject, setShowReject] = useState(false);
+
   async function load() {
     if (!id) return;
     setLoading(true);
     try {
       const s = await adminApi.getShift(id);
       setShift(s);
-      const [r, c, p, u] = await Promise.all([
+      const [rRes, cRes, pRes, uRes, reconRes, aRes] = await Promise.all([
         shiftsApi.getMeterReadings(id).catch(() => []),
         shiftsApi.getCashEntries({ shift_id: id }).catch(() => []),
         shiftsApi.getPosTransactions({ shift_id: id }).catch(() => []),
         shiftsApi.getUpiTransactions({ shift_id: id }).catch(() => []),
+        adminApi.getShiftReconciliation(id).catch(() => null),
+        adminApi
+          .getAnomalies({ shift_id: id, page_size: 100 })
+          .catch(() => []),
       ]);
-      setReadings(unwrap(r as MeterReading[] | { items: MeterReading[] }));
-      setCash(unwrap(c as CashEntry[] | { items: CashEntry[] }));
-      setPos(unwrap(p as PosTransaction[] | { items: PosTransaction[] }));
-      setUpi(unwrap(u as UpiTransaction[] | { items: UpiTransaction[] }));
-
-      try {
-        const rec = await adminApi.getShiftReconciliation(id);
-        setRecon(rec);
-      } catch {
-        setRecon(null);
-      }
+      setReadings(unwrap(rRes as MeterReading[] | { items: MeterReading[] }));
+      setCash(unwrap(cRes as CashEntry[] | { items: CashEntry[] }));
+      setPos(unwrap(pRes as PosTransaction[] | { items: PosTransaction[] }));
+      setUpi(unwrap(uRes as UpiTransaction[] | { items: UpiTransaction[] }));
+      setRecon(reconRes);
+      setAnomalies(unwrap(aRes as AnomalyFlag[] | { items: AnomalyFlag[] }));
     } catch (err) {
       toast.error(errMsg(err, "Failed to load shift."));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleApprove() {
+    if (!shift) return;
+    try {
+      await adminApi.approveShift(shift.id);
+      toast.success("Shift approved and locked.");
+      void load();
+    } catch (err) {
+      toast.error(errMsg(err, "Failed to approve shift."));
+    }
+  }
+
+  async function handleReject() {
+    if (!shift || !rejectReason.trim()) return;
+    try {
+      await adminApi.rejectShift(shift.id, rejectReason);
+      toast.success("Shift rejected.");
+      setShowReject(false);
+      setRejectReason("");
+      void load();
+    } catch (err) {
+      toast.error(errMsg(err, "Failed to reject shift."));
     }
   }
 
@@ -125,8 +156,54 @@ export default function ShiftDetailPage() {
       <PageHeader
         title={`Shift ${shift.id.slice(0, 8)}`}
         description={`Started ${new Date(shift.start_time).toLocaleString()}`}
-        actions={<Badge tone={statusBadgeTone(shift.status)}>{shift.status}</Badge>}
+        actions={
+          <div className="flex items-center gap-3">
+            {shift.status === "PENDING_APPROVAL" && (
+              <>
+                <Button variant="secondary" onClick={() => setShowReject(true)}>
+                  <X className="h-4 w-4 text-red-500 mr-2" />
+                  Reject
+                </Button>
+                <Button onClick={handleApprove} className="bg-emerald-600 hover:bg-emerald-700">
+                  <Check className="h-4 w-4 mr-2" />
+                  Approve
+                </Button>
+              </>
+            )}
+            <Badge tone={statusBadgeTone(shift.status)}>{shift.status}</Badge>
+          </div>
+        }
       />
+
+      {showReject && (
+        <Card className="bg-red-50 border-red-200">
+          <h3 className="font-semibold text-red-900 mb-2">Reject Shift Reconciliation</h3>
+          <div className="flex items-start gap-3">
+            <Input
+              className="flex-1"
+              placeholder="Reason for rejection (e.g. missing POS slips)"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+            <Button variant="secondary" onClick={() => setShowReject(false)}>Cancel</Button>
+            <Button onClick={handleReject} disabled={!rejectReason.trim()} className="bg-red-600 hover:bg-red-700">
+              Confirm Reject
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {shift.status === "LOCKED" && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex items-start gap-3">
+          <Lock className="h-5 w-5 text-slate-500 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Shift is Locked</h3>
+            <p className="text-sm text-slate-600 mt-0.5">
+              This shift has been approved and locked. Data cannot be modified.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Card>
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -171,6 +248,7 @@ export default function ShiftDetailPage() {
             ["payments", "Payments"],
             ["reconciliation", "Reconciliation"],
             ["anomalies", "Anomalies"],
+            ["ingestion", "Data Uploads"],
           ] as const
         ).map(([v, label]) => (
           <button
@@ -214,6 +292,25 @@ export default function ShiftDetailPage() {
             value={`₹${totals.cashTotal.toLocaleString("en-IN")}`}
             tone="text-amber-600 bg-amber-50"
           />
+        </div>
+      )}
+
+      {tab === "ingestion" && (
+        <div className="space-y-4">
+          <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-4">
+            <h3 className="font-semibold text-indigo-900 flex items-center gap-2">
+              Automated Data Ingestion
+            </h3>
+            <p className="text-sm text-indigo-700 mt-1">
+              Upload CSV files exported from your payment gateways or dispenser controllers. 
+              The system will automatically parse them and link the transactions to this shift.
+            </p>
+          </div>
+          {shift.status === "LOCKED" ? (
+             <p className="text-sm text-slate-500">Data ingestion is disabled because the shift is locked.</p>
+          ) : (
+             <DataIngestionPanel shiftId={shift.id} pumpId={shift.pump_id} onComplete={load} />
+          )}
         </div>
       )}
 
@@ -442,6 +539,46 @@ function ReconciliationTab({
               value={`₹${toNum(recon.variance).toLocaleString("en-IN")}`}
             />
           </dl>
+
+          {recon.confidence_score != null && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-xs uppercase tracking-wide text-slate-500">Confidence</span>
+              <div className="flex-1 max-w-xs bg-slate-100 rounded-full h-2">
+                <div
+                  className="bg-emerald-500 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, toNum(recon.confidence_score) * 100)}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                {(toNum(recon.confidence_score) * 100).toFixed(1)}%
+              </span>
+            </div>
+          )}
+
+          {recon.narration_summary && (
+            <div className="mt-4 rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-indigo-700 mb-1">
+                AI Summary
+              </h4>
+              <p className="text-sm text-indigo-900 leading-relaxed">
+                {recon.narration_summary}
+              </p>
+            </div>
+          )}
+
+          {recon.variance_reason && (
+            <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                Variance Reason
+              </h4>
+              <p className="text-sm font-medium text-slate-800">
+                {recon.variance_reason.replace(/_/g, " ")}
+              </p>
+              {recon.variance_notes && (
+                <p className="text-sm text-slate-600 mt-1">{recon.variance_notes}</p>
+              )}
+            </div>
+          )}
         </Card>
       ) : (
         <Card>
@@ -475,6 +612,18 @@ function ReconciliationTab({
           </div>
         </Card>
       )}
+
+      {/* Per-Worker Cash Collection Breakdown */}
+      <div className="mt-6">
+        <h3 className="text-base font-semibold text-slate-900 mb-3">
+          Per-Worker Cash Collection
+        </h3>
+        <WorkerCashSummary
+          shiftId={shift.id}
+          canRun={shift.status.toUpperCase() !== "LOCKED"}
+          onReconciled={onReloaded}
+        />
+      </div>
     </div>
   );
 }

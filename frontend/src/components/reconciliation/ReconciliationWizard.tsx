@@ -7,6 +7,7 @@ import { Spinner } from "../ui/Spinner";
 import { adminApi, ReconciliationResult, Shift } from "../../api/admin";
 import { shiftsApi } from "../../api/shifts";
 import { errMsg } from "../../lib/errMsg";
+import { WorkerCashSummary } from "./WorkerCashSummary";
 
 type Step = 1 | 2 | 3;
 
@@ -229,6 +230,7 @@ export function ReconciliationWizard({ orgId }: ReconciliationWizardProps) {
       )}
 
       {step === 3 && result && (
+        <>
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -249,25 +251,136 @@ export function ReconciliationWizard({ orgId }: ReconciliationWizardProps) {
             <Stat
               label="Variance"
               value={`₹${toNum(result.variance).toLocaleString("en-IN")}`}
+              tone={toNum(result.variance) > 0 ? "text-red-600" : toNum(result.variance) < 0 ? "text-amber-600" : "text-emerald-600"}
             />
           </dl>
+
+          {result.confidence_score != null && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-xs uppercase tracking-wide text-slate-500">Confidence</span>
+              <div className="flex-1 max-w-xs bg-slate-100 rounded-full h-2">
+                <div
+                  className="bg-emerald-500 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, toNum(result.confidence_score) * 100)}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-slate-700">
+                {(toNum(result.confidence_score) * 100).toFixed(1)}%
+              </span>
+            </div>
+          )}
+
+          {result.narration_summary && (
+            <div className="mt-4 rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-indigo-700 mb-1">
+                AI Summary
+              </h4>
+              <p className="text-sm text-indigo-900 leading-relaxed">
+                {result.narration_summary}
+              </p>
+            </div>
+          )}
+
+          {result.variance_reason && (
+            <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                Variance Reason
+              </h4>
+              <p className="text-sm font-medium text-slate-800">
+                {result.variance_reason.replace(/_/g, " ")}
+              </p>
+              {result.variance_notes && (
+                <p className="text-sm text-slate-600 mt-1">{result.variance_notes}</p>
+              )}
+            </div>
+          )}
+
           {result.anomalies && result.anomalies.length > 0 && (
             <div className="mt-6">
               <h4 className="text-sm font-semibold text-slate-900 mb-2">
                 Anomaly flags
               </h4>
-              <ul className="space-y-1 text-sm text-slate-700">
-                {result.anomalies.map((a, i) => (
-                  <li
-                    key={i}
-                    className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2"
-                  >
-                    {JSON.stringify(a)}
-                  </li>
-                ))}
+              <ul className="space-y-2 text-sm">
+                {result.anomalies.map((a: Record<string, unknown>, i: number) => {
+                  const severity = String(a.severity ?? "low").toUpperCase();
+                  const isHigh = severity === "HIGH" || severity === "CRITICAL";
+                  const isMedium = severity === "MEDIUM";
+                  return (
+                    <li
+                      key={i}
+                      className={`rounded-md border px-3 py-2 flex items-start justify-between gap-2 ${
+                        isHigh
+                          ? "bg-red-50 border-red-200"
+                          : isMedium
+                            ? "bg-amber-50 border-amber-200"
+                            : "bg-slate-50 border-slate-200"
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium text-slate-900">
+                          {String(a.flag_type ?? a.type ?? "Anomaly").replace(/_/g, " ")}
+                        </div>
+                        {a.description != null && (
+                          <div className="text-slate-600 mt-0.5 text-xs">
+                            {String(a.description)}
+                          </div>
+                        )}
+                        {a.amount != null && (
+                          <div className="text-slate-500 font-mono text-xs mt-0.5">
+                            ₹{toNum(a.amount as string | number).toLocaleString("en-IN")}
+                          </div>
+                        )}
+                      </div>
+                      <Badge
+                        tone={isHigh ? "red" : isMedium ? "amber" : "slate"}
+                      >
+                        {severity}
+                      </Badge>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
+
+          {result.grade_breakdown && Object.keys(result.grade_breakdown).length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-slate-900 mb-2">
+                Fuel Grade Breakdown
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="text-left px-3 py-2">Grade</th>
+                      <th className="text-right px-3 py-2">Volume (L)</th>
+                      <th className="text-right px-3 py-2">Amount (₹)</th>
+                      <th className="text-right px-3 py-2">Unit Price</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {Object.entries(result.grade_breakdown as Record<string, Record<string, string>>).map(
+                      ([code, data]) => (
+                        <tr key={code}>
+                          <td className="px-3 py-2 font-medium text-slate-900">{code}</td>
+                          <td className="px-3 py-2 text-right text-slate-700">
+                            {toNum(data.volume_litres).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-700">
+                            ₹{toNum(data.amount).toLocaleString("en-IN")}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-500">
+                            ₹{toNum(data.unit_price).toFixed(2)}
+                          </td>
+                        </tr>
+                      ),
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 flex gap-2">
             <Button
               variant="secondary"
@@ -283,18 +396,26 @@ export function ReconciliationWizard({ orgId }: ReconciliationWizardProps) {
             </Button>
           </div>
         </Card>
+
+        {/* Per-Worker breakdown after reconciliation */}
+        {selected && (
+          <div className="mt-4">
+            <WorkerCashSummary shiftId={selected.id} canRun />
+          </div>
+        )}
+        </>
       )}
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div>
       <dt className="text-xs uppercase tracking-wide text-slate-500">
         {label}
       </dt>
-      <dd className="mt-1 text-lg font-semibold text-slate-900">{value}</dd>
+      <dd className={`mt-1 text-lg font-semibold ${tone ?? "text-slate-900"}`}>{value}</dd>
     </div>
   );
 }

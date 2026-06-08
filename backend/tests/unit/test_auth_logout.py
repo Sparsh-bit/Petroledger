@@ -37,8 +37,7 @@ async def test_refresh_token_revoked_after_logout(test_client):
         return tok in blacklisted
 
     with patch("app.utils.token_blacklist.blacklist_token", _blacklist), \
-         patch("app.services.auth.is_blacklisted", _is_blacklisted), \
-         patch("app.api.deps.auth.is_blacklisted", _is_blacklisted):
+         patch("app.utils.token_blacklist.is_blacklisted", _is_blacklisted):
 
         logout = await test_client.post(
             "/api/v1/auth/logout",

@@ -174,6 +174,41 @@ async def run_reconciliation(
     )
 
 
+# ── GET /shifts/{shift_id}/per-worker — fetch existing per-worker results ────
+
+
+@router.get(
+    "/shifts/{shift_id}/per-worker",
+    response_model=PerWorkerReconciliationResponse,
+    summary="Get per-worker reconciliation results for a shift",
+)
+async def get_per_worker_reconciliation(
+    shift_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> PerWorkerReconciliationResponse:
+    """Return cached per-worker reconciliation results for *shift_id*.
+
+    This re-computes the per-worker breakdown from the existing
+    ``nozzle_shift_sales`` and ``cash_entries`` data (stateless read).
+    Raises **400** if no meter readings exist for the shift.
+    """
+    await _verify_shift_tenant_access(shift_id, current_user, db)
+    results = await reconcile_per_worker(shift_id, db)
+
+    from decimal import ROUND_HALF_UP, Decimal as _Decimal
+    _TWO = _Decimal("0.01")
+    total_sale = sum(r.shift_sale_amount for r in results)
+    total_variance = sum(r.variance for r in results)
+
+    return PerWorkerReconciliationResponse(
+        shift_id=shift_id,
+        results=results,
+        total_shift_sale=total_sale.quantize(_TWO, rounding=ROUND_HALF_UP),
+        total_variance=total_variance.quantize(_TWO, rounding=ROUND_HALF_UP),
+    )
+
+
 # ── POST /shifts/{shift_id}/run-per-worker ───────────────────────────────────
 
 

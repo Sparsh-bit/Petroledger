@@ -17,3 +17,4 @@ build/
 .coverage
 .vscode/
 .idea/
+backend/test.db

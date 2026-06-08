@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Activity } from "lucide-react";
-import { Badge, Input } from "../../components/ui";
+import { Badge, Input, Button } from "../../components/ui";
 import { Select } from "../../components/ui/Select";
 import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Shift, Pump, Worker } from "../../api/admin";
+import { shiftsApi } from "../../api/shifts";
 import { useOrgStore, useEnsureOrgs } from "../../store/org";
 import { errMsg } from "../../lib/errMsg";
 
@@ -35,6 +36,7 @@ export default function ShiftsPage() {
   const [workerId, setWorkerId] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const pageSize = 25;
 
   async function load() {
@@ -97,10 +99,16 @@ export default function ShiftsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Shifts"
-        description="Every shift recorded across your pumps."
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          title="Shifts"
+          description="Every shift recorded across your pumps."
+        />
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Activity className="h-4 w-4 mr-2" />
+          Start Shift
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <Select
@@ -189,6 +197,32 @@ export default function ShiftsPage() {
               <Badge tone={statusBadgeTone(s.status)}>{s.status}</Badge>
             ),
           },
+          {
+            key: "actions",
+            header: "Actions",
+            render: (s) =>
+              s.status.toUpperCase() === "ACTIVE" ? (
+                <Button
+                  variant="secondary"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm("Are you sure you want to end this shift?")) return;
+                    try {
+                      await shiftsApi.closeShift(s.id, {
+                        status: "completed",
+                        end_time: new Date().toISOString(),
+                      });
+                      toast.success("Shift ended.");
+                      void load();
+                    } catch (err) {
+                      toast.error(errMsg(err, "Failed to end shift."));
+                    }
+                  }}
+                >
+                  End Shift
+                </Button>
+              ) : null,
+          },
         ]}
       />
 
@@ -198,6 +232,112 @@ export default function ShiftsPage() {
         total={total}
         onPageChange={setPage}
       />
+
+      {showCreateDialog && (
+        <CreateShiftDialog
+          pumps={pumps}
+          workers={workers}
+          onClose={() => setShowCreateDialog(false)}
+          onCreated={() => {
+            setShowCreateDialog(false);
+            void load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateShiftDialog({
+  pumps,
+  workers,
+  onClose,
+  onCreated,
+}: {
+  pumps: Pump[];
+  workers: Worker[];
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [pumpId, setPumpId] = useState("");
+  const [workerId, setWorkerId] = useState("");
+  const [slot, setSlot] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pumpId || !workerId) {
+      toast.error("Pump and Worker are required.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await shiftsApi.startShift({
+        pump_id: pumpId,
+        worker_id: workerId,
+        slot: slot || undefined,
+        start_time: new Date().toISOString(),
+      });
+      toast.success("Shift started.");
+      onCreated();
+    } catch (err) {
+      toast.error(errMsg(err, "Failed to start shift."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="font-semibold text-slate-900">Start New Shift</h2>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 transition"
+          >
+            ×
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <Select
+            label="Pump"
+            value={pumpId}
+            onChange={(e) => setPumpId(e.target.value)}
+            options={pumps.map((p) => ({ value: p.id, label: p.name }))}
+            placeholder="Select a pump"
+          />
+          <Select
+            label="Worker"
+            value={workerId}
+            onChange={(e) => setWorkerId(e.target.value)}
+            options={workers.map((w) => ({
+              value: w.id,
+              label: w.employee_code,
+            }))}
+            placeholder="Select a worker"
+          />
+          <Input
+            label="Slot (Optional)"
+            placeholder="e.g. Morning, Evening"
+            value={slot}
+            onChange={(e) => setSlot(e.target.value)}
+          />
+          <div className="pt-2 flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1" disabled={busy}>
+              {busy ? "Starting…" : "Start Shift"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

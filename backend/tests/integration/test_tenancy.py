@@ -173,7 +173,7 @@ async def test_tenant_isolation(test_client):
     data_a = resp_a.json()
 
     # Handle both paginated and list responses
-    items_a = data_a.get("data", data_a) if isinstance(data_a, dict) else data_a
+    items_a = data_a.get("items", [])
     names_a = [o["name"] for o in items_a]
     assert "Alpha Station" in names_a
     assert "Beta Station" not in names_a
@@ -186,7 +186,7 @@ async def test_tenant_isolation(test_client):
     assert resp_b.status_code == 200
     data_b = resp_b.json()
 
-    items_b = data_b.get("data", data_b) if isinstance(data_b, dict) else data_b
+    items_b = data_b.get("items", [])
     names_b = [o["name"] for o in items_b]
     assert "Beta Station" in names_b
     assert "Alpha Station" not in names_b

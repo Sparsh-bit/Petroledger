@@ -133,6 +133,15 @@ export interface ReconciliationResult {
   variance: string | number;
   confidence_score?: number | null;
   anomalies?: Array<Record<string, unknown>>;
+  narration_summary?: string | null;
+  variance_reason?: string | null;
+  variance_notes?: string | null;
+  variance_type?: string | null;
+  grade_breakdown?: Record<string, Record<string, string>> | null;
+  fms_total?: string | number | null;
+  upi_total?: string | number | null;
+  card_total?: string | number | null;
+  fleet_total?: string | number | null;
   created_at: string;
 }
 
@@ -235,6 +244,32 @@ export interface DowntimeStartPayload {
 }
 
 /* ----------------------------------------------------------------------
+ * Per-Worker Reconciliation
+ * -------------------------------------------------------------------- */
+
+export interface PerWorkerResult {
+  nozzle_id: string;
+  nozzle_number: number;
+  worker_id: string;
+  worker_name: string;
+  shift_sale_amount: string | number;
+  upi_received: string | number;
+  card_settled: string | number;
+  fleet_card: string | number;
+  expected_cash: string | number;
+  actual_cash: string | number;
+  variance: string | number;
+  status: "MATCH" | "SHORTAGE" | "EXCESS";
+}
+
+export interface PerWorkerReconciliationResponse {
+  shift_id: string;
+  results: PerWorkerResult[];
+  total_shift_sale: string | number;
+  total_variance: string | number;
+}
+
+/* ----------------------------------------------------------------------
  * API
  * -------------------------------------------------------------------- */
 
@@ -326,6 +361,14 @@ export const adminApi = {
   },
   getShift: (id: string) =>
     api.get<Shift>(`/shifts/${id}`).then((r) => r.data),
+  approveShift: (id: string, notes?: string) =>
+    api
+      .post<Shift>(`/shifts/${id}/approve`, { approval_notes: notes })
+      .then((r) => r.data),
+  rejectShift: (id: string, reason: string) =>
+    api
+      .post<Shift>(`/shifts/${id}/reject`, { rejection_reason: reason })
+      .then((r) => r.data),
 
   // ── Reconciliation ────────────────────────────────────────────────
   getShiftReconciliation: (shiftId: string) =>
@@ -347,6 +390,29 @@ export const adminApi = {
       .post<ReconciliationResult>(`/reconciliation/shifts/${shiftId}/run`, {
         actual_cash: actualCash,
       })
+      .then((r) => r.data),
+  getPerWorkerReconciliation: (shiftId: string) =>
+    api
+      .get<PerWorkerReconciliationResponse>(
+        `/reconciliation/shifts/${shiftId}/per-worker`,
+      )
+      .then((r) => r.data),
+  runPerWorkerReconciliation: (shiftId: string) =>
+    api
+      .post<PerWorkerReconciliationResponse>(
+        `/reconciliation/shifts/${shiftId}/run-per-worker`,
+      )
+      .then((r) => r.data),
+  setVarianceReason: (
+    resultId: string,
+    reason: string,
+    notes?: string,
+  ) =>
+    api
+      .patch<ReconciliationResult>(
+        `/reconciliation/${resultId}/variance-reason`,
+        { reason, notes },
+      )
       .then((r) => r.data),
 
   // ── Anomalies ─────────────────────────────────────────────────────

@@ -88,6 +88,10 @@ class ReconciliationResult(UUIDMixin, TimestampMixin, Base):
     # ── AI narration ────────────────────────────────────────────────────
     narration_summary: Mapped[str | None] = mapped_column(String(2000), nullable=True)
 
+    # ── Reconciliation type ─────────────────────────────────────────────
+    # "shift" (default aggregate) or "per_worker" (nozzle-level breakdown)
+    reconciliation_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     # ── Variance classification (Task 2.8) ──────────────────────────────
     variance_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
     variance_notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
