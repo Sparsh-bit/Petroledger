@@ -20,6 +20,8 @@ class WorkerCreate(BaseModel):
 class WorkerUpdate(BaseModel):
     pump_id: UUID | None = None
     employee_code: str | None = Field(None, min_length=1, max_length=50)
+    full_name: str | None = Field(None, max_length=150)
+    is_active: bool | None = None
 
 
 # ── Response Schemas ────────────────────────────────────────────────────
@@ -32,6 +34,8 @@ class WorkerResponse(BaseModel):
     user_id: UUID
     pump_id: UUID
     employee_code: str
+    full_name: str | None = None
     joined_date: date
+    is_active: bool = True
     created_at: datetime
     updated_at: datetime

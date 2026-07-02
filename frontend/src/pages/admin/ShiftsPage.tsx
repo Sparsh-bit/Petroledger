@@ -9,6 +9,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Shift, Pump, Worker } from "../../api/admin";
 import { shiftsApi } from "../../api/shifts";
 import { useOrgStore, useEnsureOrgs } from "../../store/org";
+import { useAuth, roleBasePath } from "../../store/auth";
 import { errMsg } from "../../lib/errMsg";
 
 
@@ -23,8 +24,10 @@ export function statusBadgeTone(status: string): "green" | "amber" | "blue" | "r
 
 const STATUSES = ["", "ACTIVE", "COMPLETED", "RECONCILED", "LOCKED"];
 
-export default function ShiftsPage() {
+export default function AdminShiftsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const basePath = roleBasePath(user?.role || "admin");
   const { selectedOrgId } = useOrgStore();
   useEnsureOrgs();
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -93,8 +96,12 @@ export default function ShiftsPage() {
     return (id: string) => m.get(id) ?? id.slice(0, 8);
   }, [pumps]);
   const workerCode = useMemo(() => {
-    const m = new Map(workers.map((w) => [w.id, w.employee_code]));
-    return (id: string) => m.get(id) ?? id.slice(0, 8);
+    const m = new Map(workers.map((w) => [w.id, w]));
+    return (id: string) => {
+      const w = m.get(id);
+      if (!w) return id.slice(0, 8);
+      return w.full_name ? `${w.full_name} (${w.employee_code})` : w.employee_code;
+    };
   }, [workers]);
 
   return (
@@ -131,7 +138,7 @@ export default function ShiftsPage() {
           placeholder="All workers"
           options={workers.map((w) => ({
             value: w.id,
-            label: w.employee_code,
+            label: w.full_name ? `${w.full_name} (${w.employee_code})` : w.employee_code,
           }))}
         />
         <Select
@@ -162,7 +169,7 @@ export default function ShiftsPage() {
         loading={loading}
         data={shifts}
         rowKey={(s) => s.id}
-        onRowClick={(s) => navigate(`/admin/shifts/${s.id}`)}
+        onRowClick={(s) => navigate(`${basePath}/shifts/${s.id}`)}
         emptyState={
           <div className="flex flex-col items-center gap-2 text-slate-500">
             <Activity className="h-6 w-6 text-slate-400" />
@@ -313,7 +320,7 @@ function CreateShiftDialog({
             onChange={(e) => setWorkerId(e.target.value)}
             options={workers.map((w) => ({
               value: w.id,
-              label: w.employee_code,
+              label: w.full_name ? `${w.full_name} (${w.employee_code})` : w.employee_code,
             }))}
             placeholder="Select a worker"
           />

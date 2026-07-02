@@ -61,6 +61,7 @@ export interface Worker {
   user_id: string;
   pump_id: string;
   employee_code: string;
+  full_name?: string | null;
   joined_date: string | null;
   is_active?: boolean;
   created_at?: string;
@@ -74,6 +75,7 @@ export interface WorkerCreatePayload {
   employee_code: string;
   joined_date: string; // YYYY-MM-DD
   org_id?: string;
+  full_name?: string;
 }
 
 export interface WorkerUpdatePayload {
@@ -310,6 +312,7 @@ export const adminApi = {
         password: payload.password,
         role: "worker",
         org_id: payload.org_id,
+        full_name: payload.full_name,
       });
       userId = res.data.id;
     } catch (err: unknown) {

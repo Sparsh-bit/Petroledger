@@ -9,12 +9,15 @@ import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Pump, Shift, Worker, Nozzle } from "../../api/admin";
 import { shiftsApi } from "../../api/shifts";
+import { useAuth, roleBasePath } from "../../store/auth";
 import { statusBadgeTone } from "../admin/ShiftsPage";
 import { errMsg } from "../../lib/errMsg";
 
 
 export default function ManagerShiftsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const basePath = roleBasePath(user?.role || "manager");
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [pumps, setPumps] = useState<Pump[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -60,8 +63,12 @@ export default function ManagerShiftsPage() {
   }, [pumps]);
 
   const workerCode = useMemo(() => {
-    const m = new Map(workers.map((w) => [w.id, w.employee_code]));
-    return (id: string) => m.get(id) ?? id.slice(0, 8);
+    const m = new Map(workers.map((w) => [w.id, w]));
+    return (id: string) => {
+      const w = m.get(id);
+      if (!w) return id.slice(0, 8);
+      return w.full_name ? `${w.full_name} (${w.employee_code})` : w.employee_code;
+    };
   }, [workers]);
 
   return (
@@ -100,7 +107,7 @@ export default function ManagerShiftsPage() {
         data={shifts}
         loading={loading}
         rowKey={(s) => s.id}
-        onRowClick={(s) => navigate(`/admin/shifts/${s.id}`)}
+        onRowClick={(s) => navigate(`${basePath}/shifts/${s.id}`)}
         emptyState={
           <div className="flex flex-col items-center gap-2 text-slate-500">
             <Activity className="h-6 w-6 text-slate-400" />
@@ -284,7 +291,7 @@ function StartShiftModal({
             placeholder="Select worker…"
             options={workers.map((w) => ({
               value: w.id,
-              label: w.employee_code,
+              label: w.full_name ? `${w.full_name} (${w.employee_code})` : w.employee_code,
             }))}
           />
           <Select

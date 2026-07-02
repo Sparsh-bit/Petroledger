@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { adminApi, AnomalyFlag, Pump, Shift } from "../../api/admin";
 import { Skeleton, SkeletonList } from "../../components/ui/Skeleton";
 import { useOrgStore, useEnsureOrgs, refreshOrgs } from "../../store/org";
+import { useAuth, roleBasePath } from "../../store/auth";
 
 interface KpiCard {
   label: string;
@@ -40,6 +41,8 @@ function statusTone(status: string): string {
 }
 
 export default function AdminDashboardPage() {
+  const { user } = useAuth();
+  const basePath = roleBasePath(user?.role || "admin");
   const { selectedOrgId } = useOrgStore();
   useEnsureOrgs();
 
@@ -132,7 +135,7 @@ export default function AdminDashboardPage() {
       <section>
         <SectionHeader
           title="Pumps"
-          action={<Link to="/admin/pumps" className="text-sm text-emerald-600 hover:text-emerald-500">Manage →</Link>}
+          action={<Link to={`${basePath}/pumps`} className="text-sm text-emerald-600 hover:text-emerald-500">Manage →</Link>}
         />
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           {loading ? (
@@ -159,7 +162,7 @@ export default function AdminDashboardPage() {
                   <tr key={p.id} className="hover:bg-slate-50">
                     <td className="px-5 py-3 font-medium text-slate-900">
                       <Link
-                        to={`/admin/pumps/${p.id}`}
+                        to={`${basePath}/pumps/${p.id}`}
                         className="hover:text-emerald-600"
                       >
                         {p.name}
@@ -193,7 +196,7 @@ export default function AdminDashboardPage() {
       <section>
         <SectionHeader
           title="Recent shifts"
-          action={<Link to="/admin/shifts" className="text-sm text-emerald-600 hover:text-emerald-500">View all →</Link>}
+          action={<Link to={`${basePath}/shifts`} className="text-sm text-emerald-600 hover:text-emerald-500">View all →</Link>}
         />
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           {loading ? (
@@ -245,7 +248,7 @@ export default function AdminDashboardPage() {
       <section>
         <SectionHeader
           title="Recent anomalies"
-          action={<Link to="/admin/anomalies" className="text-sm text-emerald-600 hover:text-emerald-500">View all →</Link>}
+          action={<Link to={`${basePath}/anomalies`} className="text-sm text-emerald-600 hover:text-emerald-500">View all →</Link>}
         />
         <div className="rounded-xl border border-slate-200 bg-white">
           {loading ? (

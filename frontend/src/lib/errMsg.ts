@@ -14,7 +14,8 @@ export function errMsg(err: unknown, fallback: string): string {
     response?: { data?: { detail?: unknown } };
     message?: string;
   };
-  const detail = e?.response?.data?.detail;
+  const data = e?.response?.data as { detail?: unknown; message?: string } | undefined;
+  const detail = data?.detail;
   if (typeof detail === "string" && detail) return detail;
   if (Array.isArray(detail) && detail.length > 0) {
     // FastAPI 422: [{type, loc, msg, input}]
@@ -22,5 +23,6 @@ export function errMsg(err: unknown, fallback: string): string {
     const msg = first?.msg || first?.message;
     if (typeof msg === "string" && msg) return msg;
   }
+  if (typeof data?.message === "string" && data.message) return data.message;
   return (typeof e?.message === "string" && e.message) ? e.message : fallback;
 }

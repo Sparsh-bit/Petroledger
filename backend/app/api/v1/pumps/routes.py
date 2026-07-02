@@ -229,7 +229,7 @@ async def update_pump(
     pump_id: UUID,
     payload: PumpUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)),
 ) -> PumpResponse:
     pump = await _get_pump_or_404(db, pump_id)
     org = await _get_org_or_404(db, pump.org_id)
@@ -316,7 +316,7 @@ async def create_nozzle(
     pump_id: UUID,
     payload: NozzleCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)),
 ) -> NozzleResponse:
     pump = await _get_pump_or_404(db, pump_id)
     org = await _get_org_or_404(db, pump.org_id)
@@ -362,7 +362,7 @@ async def delete_nozzle(
     pump_id: UUID,
     nozzle_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)),
 ) -> None:
     pump = await _get_pump_or_404(db, pump_id)
     org = await _get_org_or_404(db, pump.org_id)

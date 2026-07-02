@@ -27,6 +27,7 @@ import {
   UpiTransaction,
 } from "../../api/shifts";
 import { statusBadgeTone } from "./ShiftsPage";
+import { useAuth, roleBasePath } from "../../store/auth";
 import { errMsg } from "../../lib/errMsg";
 import { WorkerCashSummary } from "../../components/reconciliation/WorkerCashSummary";
 import { DataIngestionPanel } from "../../components/reconciliation/DataIngestionPanel";
@@ -45,6 +46,8 @@ function unwrap<T>(res: T[] | { items: T[] }): T[] {
 
 export default function ShiftDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const basePath = roleBasePath(user?.role || "admin");
   const [shift, setShift] = useState<Shift | null>(null);
   const [readings, setReadings] = useState<MeterReading[]>([]);
   const [cash, setCash] = useState<CashEntry[]>([]);
@@ -147,7 +150,7 @@ export default function ShiftDetailPage() {
   return (
     <div className="space-y-6">
       <Link
-        to="/admin/shifts"
+        to={`${basePath}/shifts`}
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
       >
         <ArrowLeft className="h-4 w-4" /> All shifts

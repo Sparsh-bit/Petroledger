@@ -64,3 +64,20 @@ export function roleHomePath(role: UserRole): string {
       return "/login";
   }
 }
+
+export function roleBasePath(role: UserRole): string {
+  switch (role) {
+    case "superadmin":
+    case "provider":
+      return "/provider";
+    case "owner":
+    case "admin":
+      return "/admin";
+    case "manager":
+      return "/manager";
+    case "worker":
+      return "/worker";
+    default:
+      return "";
+  }
+}

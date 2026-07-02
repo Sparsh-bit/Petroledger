@@ -152,7 +152,7 @@ async def _get_tank(db: AsyncSession, tank_id: UUID, user: User) -> FuelTank:
 async def create_tank(
     payload: TankCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)),
 ) -> TankResponse:
     org = await _guard_org(db, payload.org_id, current_user)
     tank = FuelTank(
@@ -262,7 +262,7 @@ async def create_delivery(
     tank_id: UUID,
     payload: DeliveryCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)),
 ) -> DeliveryResponse:
     tank = await _get_tank(db, tank_id, current_user)
     total_cost = (

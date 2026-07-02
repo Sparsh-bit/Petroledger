@@ -123,6 +123,11 @@ export default function WorkersPage() {
             ),
           },
           {
+            key: "name",
+            header: "Full Name",
+            render: (w) => w.full_name || "—",
+          },
+          {
             key: "pump",
             header: "Pump",
             render: (w) => pumpName(w.pump_id),
@@ -360,6 +365,7 @@ function CreateWorkerModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [employeeCode, setEmployeeCode] = useState(() => generateEmpCode());
@@ -389,8 +395,10 @@ function CreateWorkerModal({
         employee_code: employeeCode.trim(),
         joined_date: joinedDate,
         org_id: orgId ?? undefined,
+        full_name: fullName.trim(),
       });
       toast.success("Worker created.");
+      setFullName("");
       setEmail("");
       setPassword("");
       setEmployeeCode("");
@@ -431,6 +439,13 @@ function CreateWorkerModal({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Full name"
+            required
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Ravi Kumar"
+          />
           <Input
             label="Email"
             type="email"

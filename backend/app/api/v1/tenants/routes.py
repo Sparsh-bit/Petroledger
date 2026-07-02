@@ -185,6 +185,7 @@ async def invite_user(
         tenant_id=current_user.tenant_id,  # Same tenant as the inviting owner
         org_id=data.org_id,
         is_active=True,
+        full_name=data.full_name,
     )
     db.add(new_user)
     await db.commit()

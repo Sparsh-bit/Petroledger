@@ -9,12 +9,15 @@ import { DataTable, Pagination } from "../../components/ui/DataTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { adminApi, Pump } from "../../api/admin";
 import { useOrgStore, useEnsureOrgs, refreshOrgs } from "../../store/org";
+import { useAuth, roleBasePath } from "../../store/auth";
 import { errMsg } from "../../lib/errMsg";
 
 
 export default function PumpsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const basePath = roleBasePath(user?.role || "admin");
   const { selectedOrgId } = useOrgStore();
   useEnsureOrgs();
   const [page, setPage] = useState(1);
@@ -100,7 +103,7 @@ export default function PumpsPage() {
         loading={loading}
         data={filtered}
         rowKey={(p) => p.id}
-        onRowClick={(p) => navigate(`/admin/pumps/${p.id}`)}
+        onRowClick={(p) => navigate(`${basePath}/pumps/${p.id}`)}
         emptyState={
           <div className="flex flex-col items-center gap-2 text-slate-500">
             <Fuel className="h-6 w-6 text-slate-400" />

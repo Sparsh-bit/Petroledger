@@ -153,12 +153,20 @@ export function AppRouter() {
             path="/manager/dashboard"
             element={<ManagerDashboardPage />}
           />
+          <Route path="/manager/pumps" element={<PumpsPage />} />
+          <Route path="/manager/pumps/:id" element={<PumpDetailPage />} />
+          <Route path="/manager/workers" element={<WorkersPage />} />
           <Route path="/manager/shifts" element={<ManagerShiftsPage />} />
           <Route
             path="/manager/reconciliation"
             element={<ManagerReconciliationPage />}
           />
+          <Route path="/manager/analytics" element={<AnalyticsPage />} />
+          <Route path="/manager/inventory" element={<InventoryPage />} />
+          <Route path="/manager/maintenance" element={<MaintenancePage />} />
+          <Route path="/manager/anomalies" element={<AnomaliesPage />} />
           <Route path="/manager/reports" element={<ManagerReportsPage />} />
+          <Route path="/manager/audit-logs" element={<AuditLogsPage />} />
         </Route>
 
         {/* ── Worker portal ────────────────────────────────────────── */}

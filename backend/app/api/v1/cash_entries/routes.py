@@ -80,7 +80,7 @@ async def create_cash_entry(
     summary="List cash entries for a shift",
 )
 async def list_cash_entries(
-    shift_id: UUID = Query(..., description="Filter by shift ID"),
+    shift_id: UUID | None = Query(None, description="Filter by shift ID"),
     include_deleted: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -90,8 +90,9 @@ async def list_cash_entries(
         .join(Shift, CashEntry.shift_id == Shift.id)
         .join(Pump, Shift.pump_id == Pump.id)
         .join(Organization, Pump.org_id == Organization.id)
-        .where(CashEntry.shift_id == shift_id)
     )
+    if shift_id is not None:
+        stmt = stmt.where(CashEntry.shift_id == shift_id)
     stmt = tenant_scope(stmt, Organization, current_user)
     if not include_deleted:
         stmt = stmt.where(CashEntry.is_deleted.is_(False))

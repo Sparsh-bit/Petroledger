@@ -32,6 +32,7 @@ class CreateUserRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=64)
     role: UserRole
     org_id: uuid.UUID | None = None
+    full_name: str | None = None
 
 
 class UserListItem(BaseModel):
@@ -67,10 +68,10 @@ async def create_user(
     The created user inherits ``tenant_id`` from the actor; passing
     ``org_id`` binds the user to a specific organisation.
     """
-    if current_user.role not in (UserRole.OWNER, UserRole.ADMIN):
+    if current_user.role not in (UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only owners and admins may create staff users.",
+            detail="Only owners, admins, and managers may create staff users.",
         )
 
     service = AuthService(db)
@@ -80,6 +81,7 @@ async def create_user(
         password=payload.password,
         role=payload.role,
         org_id=payload.org_id,
+        full_name=payload.full_name,
     )
     await db.commit()
     await db.refresh(user)
@@ -100,10 +102,10 @@ async def list_users(
     current_user: User = Depends(get_current_active_user),
 ) -> PagedUsers:
     """List users within the current actor's tenant."""
-    if current_user.role not in (UserRole.OWNER, UserRole.ADMIN):
+    if current_user.role not in (UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only owners and admins may list users.",
+            detail="Only owners, admins, and managers may list users.",
         )
 
     page = max(1, page)

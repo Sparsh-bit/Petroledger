@@ -7,12 +7,15 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SkeletonCard } from "../../components/ui/Skeleton";
 import { adminApi, Pump, Downtime } from "../../api/admin";
+import { useAuth, roleBasePath } from "../../store/auth";
 import { errMsg } from "../../lib/errMsg";
 
 
 export default function PumpDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const basePath = roleBasePath(user?.role || "admin");
   const [pump, setPump] = useState<Pump | null>(null);
   const [downtimes, setDowntimes] = useState<Downtime[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +77,7 @@ export default function PumpDetailPage() {
     try {
       await adminApi.deletePump(id);
       toast.success("Pump deleted.");
-      navigate("/admin/pumps");
+      navigate(`${basePath}/pumps`);
     } catch (err) {
       toast.error(errMsg(err, "Failed to delete pump."));
     }
@@ -95,7 +98,7 @@ export default function PumpDetailPage() {
   return (
     <div className="space-y-6">
       <Link
-        to="/admin/pumps"
+        to={`${basePath}/pumps`}
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
       >
         <ArrowLeft className="h-4 w-4" /> All pumps

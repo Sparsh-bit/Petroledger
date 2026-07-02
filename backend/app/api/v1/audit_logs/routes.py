@@ -57,7 +57,7 @@ async def list_audit_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
+    current_user: User = Depends(require_role(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)),
 ) -> PagedResponse[AuditLogResponse]:
     """Return audit-log rows for the current tenant, newest-first.
 
@@ -68,6 +68,9 @@ async def list_audit_logs(
         .where(AuditLog.tenant_id == current_user.tenant_id)
         .order_by(AuditLog.created_at.desc())
     )
+
+    if current_user.role == UserRole.MANAGER and current_user.org_id:
+        stmt = stmt.where(AuditLog.org_id == current_user.org_id)
 
     if org_id is not None:
         stmt = stmt.where(AuditLog.org_id == org_id)

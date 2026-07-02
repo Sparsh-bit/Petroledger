@@ -1,0 +1,45 @@
+{
+  "loginTests": {
+    "validAdmin": {
+      "email": "e2e-admin@petroledger-test.com",
+      "password": "TestAdmin@123"
+    },
+    "invalidCombinations": [
+      { "email": "", "password": "password123", "scenario": "Empty email" },
+      { "email": "test@example.com", "password": "", "scenario": "Empty password" },
+      { "email": "not-an-email", "password": "password123", "scenario": "Malformed email" },
+      { "email": "nonexistent@example.com", "password": "WrongPassword1!", "scenario": "Non-existent user" }
+    ]
+  },
+  "contactForm": {
+    "validSubmission": {
+      "name": "E2E Test User",
+      "email": "e2e-test@example.com",
+      "company": "E2E Test Corp",
+      "message": "This is an automated E2E test submission. Please ignore."
+    }
+  },
+  "requestAccess": {
+    "validSubmission": {
+      "fullName": "E2E Test Owner",
+      "email": "e2e-owner@example.com",
+      "phone": "+91 9876543210",
+      "company": "E2E Fuel Station",
+      "pumpRange": "1",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "message": "Automated E2E test — please ignore."
+    }
+  },
+  "pumpCreation": {
+    "name": "E2E-Pump-01",
+    "location": "Bay A — E2E Test",
+    "nozzleCount": 2
+  },
+  "workerCreation": {
+    "fullName": "E2E Test Worker",
+    "email": "e2e-newworker@petroledger-test.com",
+    "password": "WorkerPass@123",
+    "employeeCode": "E2E-EMP-001"
+  }
+}

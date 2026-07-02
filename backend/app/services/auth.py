@@ -140,6 +140,7 @@ class AuthService:
             {UserRole.ADMIN, UserRole.MANAGER, UserRole.WORKER}
         ),
         UserRole.ADMIN: frozenset({UserRole.MANAGER, UserRole.WORKER}),
+        UserRole.MANAGER: frozenset({UserRole.WORKER}),
     }
 
     @classmethod
@@ -156,6 +157,7 @@ class AuthService:
         password: str,
         role: UserRole,
         org_id: uuid.UUID | None = None,
+        full_name: str | None = None,
     ) -> User:
         """Create a staff user on behalf of *actor*.
 
@@ -186,6 +188,7 @@ class AuthService:
             tenant_id=actor.tenant_id,
             org_id=org_id or actor.org_id,
             is_active=True,
+            full_name=full_name,
         )
         self.db.add(user)
         await self.db.flush()

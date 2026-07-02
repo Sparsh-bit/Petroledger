@@ -182,10 +182,24 @@ async def update_worker(
         new_org = await _get_org_or_404(db, new_pump.org_id)
         verify_tenant_match(new_org.tenant_id, current_user)
 
+    if "is_active" in update_data:
+        is_active = update_data.pop("is_active")
+        if worker.user:
+            worker.user.is_active = is_active
+            
+    if "full_name" in update_data:
+        full_name = update_data.pop("full_name")
+        if worker.user:
+            worker.user.full_name = full_name
+
     for field, value in update_data.items():
         setattr(worker, field, value)
 
-    await db.flush()
+    # Explicitly add the user to the session and commit so relationships are saved
+    if worker.user:
+        db.add(worker.user)
+    
+    await db.commit()
     await db.refresh(worker)
     return WorkerResponse.model_validate(worker)
 

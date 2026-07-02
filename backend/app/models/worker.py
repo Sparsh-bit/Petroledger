@@ -61,3 +61,11 @@ class Worker(UUIDMixin, TimestampMixin, Base):
 
     def __repr__(self) -> str:
         return f"<Worker {self.employee_code}>"
+
+    @property
+    def full_name(self) -> str | None:
+        return self.user.full_name if self.user else None
+
+    @property
+    def is_active(self) -> bool:
+        return self.user.is_active if self.user else False
